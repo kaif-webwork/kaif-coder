@@ -1,0 +1,239 @@
+.analytics-section {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 32px 18px 0;
+}
+
+.analytics-dashboard {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Stat Cards */
+.analytics-stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.analytics-stat-card {
+  background: #0b0d0e;
+  border: 1px dashed #383838;
+  border-radius: 0px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transition: border-color 0.2s ease;
+}
+
+.analytics-stat-card:hover {
+  border-color: #666;
+}
+
+.analytics-stat-label {
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.84rem;
+  color: #888888;
+}
+
+.analytics-stat-value {
+  font-family: 'Figtree', sans-serif;
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.1;
+  margin: 2px 0;
+}
+
+.analytics-stat-indicator {
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.analytics-stat-indicator.down {
+  color: #ef4444;
+}
+
+.analytics-stat-indicator.up {
+  color: #22c55e;
+}
+
+/* Chart Box */
+.analytics-chart-box {
+  background: #0b0d0e;
+  border: 1px dashed #383838;
+  border-radius: 0px;
+  padding: 16px 18px 12px;
+  transition: border-color 0.2s ease;
+}
+
+.analytics-chart-box:hover {
+  border-color: #666;
+}
+
+.analytics-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.analytics-chart-filename {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.84rem;
+}
+
+.analytics-gear-icon {
+  color: #888;
+  font-size: 0.92rem;
+}
+
+.analytics-filename-text {
+  color: #f59e0b;
+  font-weight: 500;
+}
+
+.analytics-period-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.analytics-period-tab {
+  background: none;
+  border: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: #666666;
+  cursor: pointer;
+  padding: 2px 2px;
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.analytics-period-tab:hover {
+  color: #b3b3b3;
+}
+
+.analytics-period-tab.active {
+  color: #ffffff;
+  font-weight: 700;
+  border-bottom: 2px solid #ffffff;
+}
+
+.analytics-legend-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 6px;
+  padding-right: 12px;
+}
+
+.analytics-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.76rem;
+  color: #b3b3b3;
+}
+
+.analytics-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+}
+
+.analytics-legend-dot.teal {
+  background: #2dd4bf;
+}
+
+.analytics-legend-dot.red {
+  background: #f43f5e;
+}
+
+.analytics-chart-render {
+  width: 100%;
+}
+
+.analytics-loading-placeholder {
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+}
+
+.analytics-section-divider {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .analytics-section {
+    padding: 24px 14px 0;
+  }
+
+  .analytics-stats-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .analytics-stat-card {
+    padding: 12px 14px;
+  }
+
+  .analytics-stat-label {
+    font-size: 0.78rem;
+  }
+
+  .analytics-stat-value {
+    font-size: 1.55rem;
+  }
+
+  .analytics-stat-indicator {
+    font-size: 0.74rem;
+  }
+
+  .analytics-chart-box {
+    padding: 14px 12px 10px;
+  }
+
+  .analytics-chart-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .analytics-chart-filename {
+    font-size: 0.78rem;
+  }
+
+  .analytics-period-buttons {
+    gap: 8px;
+  }
+
+  .analytics-period-tab {
+    font-size: 0.75rem;
+  }
+
+  .analytics-legend-row {
+    justify-content: flex-end;
+    padding-right: 6px;
+    gap: 10px;
+  }
+
+  .analytics-legend-item {
+    font-size: 0.72rem;
+  }
+}

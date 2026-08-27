@@ -1,0 +1,135 @@
+.uses-page-wrapper {
+  min-height: 100vh;
+  background: var(--bg-primary, #0b0d0e);
+  display: flex;
+  flex-direction: column;
+}
+
+.uses-page {
+  max-width: 700px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 40px 18px 60px;
+  flex: 1;
+}
+
+@media (max-width: 600px) {
+  .uses-page {
+    padding: 24px 14px 40px;
+  }
+}
+
+.uses-header-box {
+  display: flex;
+  align-items: center;
+}
+
+.uses-subtitle {
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.95rem;
+  font-style: italic;
+  color: #9ca3af;
+  text-align: center;
+  margin: 24px 0 36px;
+  line-height: 1.5;
+}
+
+.uses-category-section {
+  margin-bottom: 32px;
+}
+
+.uses-category-title {
+  font-family: 'Figtree', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 12px;
+}
+
+.uses-category-card {
+  background: #0b0d0e;
+  border: 1px dashed #383838;
+  border-radius: 0px;
+  overflow: hidden;
+}
+
+.uses-row-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 18px;
+  text-decoration: none;
+  border-bottom: 1px dashed #26282d;
+  transition: background 0.2s ease;
+}
+
+.uses-row-link:last-child {
+  border-bottom: none;
+}
+
+.uses-row-link:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.uses-row-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.uses-row-label {
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.88rem;
+  color: #9ca3af;
+  min-width: 180px;
+  flex-shrink: 0;
+}
+
+.uses-row-dash {
+  color: #4b5563;
+  font-size: 0.85rem;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.uses-row-name {
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.uses-row-icon {
+  color: #6b7280;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  margin-left: 12px;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.uses-row-link:hover .uses-row-icon {
+  color: #ffffff;
+  transform: translate(2px, -2px);
+}
+
+@media (max-width: 600px) {
+  .uses-row-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .uses-row-dash {
+    display: none;
+  }
+
+  .uses-row-label {
+    min-width: auto;
+    font-size: 0.8rem;
+    color: #71767b;
+  }
+}

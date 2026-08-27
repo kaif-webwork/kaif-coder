@@ -1,0 +1,139 @@
+.chip-loader-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: #08090a;
+  display: grid;
+  place-items: center;
+  z-index: 99999;
+  user-select: none;
+}
+
+.chip-loader-container {
+  width: 100%;
+  max-width: 600px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: auto;
+}
+
+.chip-loader-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Base Circuit Lines */
+.circuit-trace-base {
+  fill: none;
+  stroke: #22242a;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Pulse Travelers along Wires */
+.circuit-pulse {
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 40 200;
+  animation: pulse-stream 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.pulse-purple {
+  stroke: #c084fc;
+  filter: url(#glow-purple);
+  animation-delay: 0s;
+}
+
+.pulse-cyan {
+  stroke: #38bdf8;
+  filter: url(#glow-cyan);
+  animation-delay: 0.4s;
+}
+
+.pulse-yellow {
+  stroke: #facc15;
+  filter: url(#glow-yellow);
+  animation-delay: 0.8s;
+}
+
+.pulse-green {
+  stroke: #22c55e;
+  filter: url(#glow-green);
+  animation-delay: 1.2s;
+}
+
+.pulse-cyan-r {
+  stroke: #38bdf8;
+  filter: url(#glow-cyan);
+  animation-delay: 0.2s;
+}
+
+.pulse-green-r {
+  stroke: #22c55e;
+  filter: url(#glow-green);
+  animation-delay: 0.6s;
+}
+
+.pulse-orange {
+  stroke: #f97316;
+  filter: url(#glow-orange);
+  animation-delay: 1.0s;
+}
+
+.pulse-yellow-r {
+  stroke: #facc15;
+  filter: url(#glow-yellow);
+  animation-delay: 1.4s;
+}
+
+@keyframes pulse-stream {
+  0% {
+    stroke-dashoffset: 240;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: -40;
+    opacity: 0;
+  }
+}
+
+/* Chip Body Styling */
+.chip-body-rect {
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.9));
+}
+
+/* Text Breathing Glow */
+.chip-loading-text {
+  animation: text-breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes text-breathe {
+  0%, 100% {
+    opacity: 0.85;
+    fill: #d1d5db;
+  }
+  50% {
+    opacity: 1;
+    fill: #ffffff;
+  }
+}
+
+@media (max-width: 500px) {
+  .chip-loader-container {
+    max-width: 100%;
+    padding: 10px;
+  }
+}

@@ -1,0 +1,306 @@
+.experience-section {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 32px 18px 0;
+  scroll-margin-top: 50px;
+}
+
+/* Outer Box with Dashed Border matching reference */
+.experience-timeline {
+  position: relative;
+  background: #0b0d0e;
+  border: 1px dashed #383838;
+  border-radius: 0px;
+  margin-top: 20px;
+  padding: 12px 18px 12px 0px;
+  transition: border-color 0.2s ease;
+  overflow: hidden;
+}
+
+.experience-timeline:hover {
+  border-color: #666;
+}
+
+/* Continuous Vertical Dashed Line running through entire container */
+.experience-timeline::before {
+  content: '';
+  position: absolute;
+  left: 28px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  border-left: 1px dashed #383838;
+  z-index: 1;
+}
+
+/* Experience Item */
+.exp-card {
+  position: relative;
+  padding-left: 56px;
+  background: transparent;
+  border: none;
+  margin-bottom: 0;
+  transition: background 0.2s ease;
+}
+
+.exp-card:not(:last-child) {
+  margin-bottom: 6px;
+}
+
+/* Timeline dot sitting centered on vertical line */
+.exp-dot {
+  position: absolute;
+  left: 28.5px;
+  top: 29px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  border: 2px solid #0b0d0e;
+  box-sizing: content-box;
+  box-shadow: none;
+}
+
+.exp-dot.present {
+  background: #22c55e;
+  box-shadow: none;
+}
+
+.exp-dot.past {
+  background: #ef4444;
+  box-shadow: none;
+}
+
+.exp-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.exp-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: #1c1d20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.exp-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.exp-logo-fallback {
+  font-family: 'Figtree', sans-serif;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: #fff;
+}
+
+.exp-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.exp-company-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.exp-company {
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.exp-company-ext-link {
+  color: #888;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s ease;
+}
+
+.exp-company-ext-link:hover {
+  color: #fff;
+}
+
+.exp-status-pill {
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 500;
+  padding: 1px 7px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.exp-status-pill.present {
+  color: #02ff67;
+  background: #091d11;
+  border: 1px solid rgba(2, 255, 103, 0.3);
+}
+
+.exp-status-pill.past {
+  color: #ff4d4d;
+  background: #200d0d;
+  border: 1px solid rgba(255, 77, 77, 0.3);
+}
+
+.exp-status-dot-inner {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.exp-role {
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.82rem;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+.exp-right-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.exp-dates {
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.8rem;
+  color: #888888;
+}
+
+.exp-expand-btn {
+  color: #666;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  transition: transform 0.3s ease, color 0.2s ease;
+}
+
+.exp-header:hover .exp-expand-btn {
+  color: #bbb;
+}
+
+.exp-expand-btn.expanded {
+  transform: rotate(180deg);
+}
+
+/* Expandable content */
+.exp-content-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+}
+
+.exp-content-wrapper.expanded {
+  grid-template-rows: 1fr;
+}
+
+.exp-content {
+  overflow: hidden;
+}
+
+.exp-description {
+  padding: 2px 0 14px 50px;
+  list-style: none;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.exp-description li {
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.82rem;
+  color: #b3b3b3;
+  line-height: 1.5;
+  position: relative;
+  padding-left: 14px;
+}
+
+.exp-description li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #666;
+}
+
+@media (max-width: 600px) {
+  .experience-section {
+    padding: 24px 14px 0;
+  }
+
+  .experience-timeline {
+    padding: 10px 14px 10px 0px;
+  }
+
+  .experience-timeline::before {
+    left: 20px;
+  }
+
+  .exp-card {
+    padding-left: 42px;
+  }
+
+  .exp-dot {
+    left: 20.5px;
+    top: 24px;
+  }
+
+  .exp-logo {
+    width: 32px;
+    height: 32px;
+  }
+
+  .exp-header {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 0;
+  }
+
+  .exp-right-meta {
+    width: 100%;
+    justify-content: space-between;
+    padding-left: 44px;
+  }
+
+  .exp-description {
+    padding: 0 0 10px 0;
+  }
+}
+
+@media (max-width: 440px) {
+  .experience-timeline::before {
+    left: 16px;
+  }
+
+  .exp-dot {
+    left: 16.5px;
+    top: 24px;
+  }
+
+  .exp-card {
+    padding-left: 34px;
+  }
+
+  .exp-right-meta {
+    padding-left: 0;
+  }
+}

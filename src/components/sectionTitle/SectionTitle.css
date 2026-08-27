@@ -1,0 +1,56 @@
+.section-title {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 16px;
+  font-family: 'Figtree', sans-serif;
+}
+
+.section-title-text {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  position: relative;
+  padding: 4px 14px;
+  border: 1px dashed #383838;
+  border-radius: 0px;
+  display: inline-block;
+}
+
+.section-title-corner {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-color: #888888;
+}
+
+.section-title-corner.top-left {
+  top: -2px;
+  left: -2px;
+  border-top: 1.5px solid #888;
+  border-left: 1.5px solid #888;
+}
+
+.section-title-corner.top-right {
+  top: -2px;
+  right: -2px;
+  border-top: 1.5px solid #888;
+  border-right: 1.5px solid #888;
+}
+
+.section-title-corner.bottom-left {
+  bottom: -2px;
+  left: -2px;
+  border-bottom: 1.5px solid #888;
+  border-left: 1.5px solid #888;
+}
+
+.section-title-corner.bottom-right {
+  bottom: -2px;
+  right: -2px;
+  border-bottom: 1.5px solid #888;
+  border-right: 1.5px solid #888;
+}
+
+.section-title-line {
+  display: none;
+}

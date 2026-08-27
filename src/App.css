@@ -1,0 +1,81 @@
+/* ============================================
+   App.css — Global Design Tokens & Styles
+   ============================================ */
+
+:root {
+  /* === BACKGROUNDS === */
+  --bg-primary: #0b0d0e;
+  --bg-surface: #1a1b1c;
+  --bg-surface-elevated: #232326;
+  --bg-surface-subtle: #151515;
+  --bg-loading: #0a0a0a;
+  --bg-avatar-border: #0a0a0b;
+  --bg-skeleton: #18181b;
+
+  /* === TEXT === */
+  --text-primary: #ffffff;
+  --text-secondary: #b3b3b3;
+  --text-tertiary: #b4b4b4;
+  --text-muted: #999999;
+  --text-faint: #71767b;
+  --text-dim: #666666;
+  --text-ghost: #333333;
+
+  /* === BORDERS === */
+  --border-default: #444444;
+  --border-hover: #888888;
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-inset: #ffffff14;
+  --border-inset-highlight: #ffffff33;
+
+  /* === ACCENTS === */
+  --accent-blue: #3b82f6;
+  --accent-blue-hover: #60a5fa;
+  --accent-amber: #f59e0b;
+  --accent-green: #22c55e;
+  --accent-green-terminal: #1ef801;
+  --accent-red: #ef4444;
+  --accent-yellow: #fbbf24;
+  --accent-discord: #5865f2;
+  --accent-discord-hover: #4752c4;
+
+  /* === STATUS === */
+  --status-active: #02ff67ff;
+  --status-active-bg: #091d11;
+  --status-active-glow: rgba(2, 255, 103, 0.5);
+  --status-past: #ff3333;
+  --status-past-bg: #1d0909;
+  --status-past-glow: rgba(255, 51, 51, 0.5);
+  --status-future: #ffaa00;
+  --status-future-bg: #1d1509;
+  --status-future-glow: rgba(255, 170, 0, 0.5);
+  --status-role: #4ade80;
+
+  /* === TYPOGRAPHY === */
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --font-ui: 'Figtree', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+  --font-mono-alt: 'JetBrains Mono', 'JetBrains Mono Fallback', sans-serif;
+
+  /* === SPACING === */
+  --container-max: 700px;
+  --container-padding: 18px;
+
+  /* === RADIUS === */
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+  --radius-2xl: 8px;
+  --radius-3xl: 10px;
+  --radius-pill: 999px;
+  --radius-full: 50%;
+
+  /* === ANIMATION === */
+  --duration-fast: 0.2s;
+  --duration-normal: 0.25s;
+  --duration-slow: 0.3s;
+  --ease-spring: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-material: cubic-bezier(0.4, 0, 0.2, 1);
+}

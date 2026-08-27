@@ -1,0 +1,101 @@
+.tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.tooltip-bubble {
+  position: absolute;
+  background: #1a1b1c;
+  color: #b3b3b3;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 1001;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.25s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.tooltip-wrapper:hover .tooltip-bubble {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.tooltip-bubble.top {
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform-origin: bottom center;
+}
+
+.tooltip-wrapper:hover .tooltip-bubble.top {
+  transform: scale(1) translateX(-50%);
+}
+
+.tooltip-bubble.top:not(:hover) {
+  transform: scale(0.8) translateX(-50%);
+}
+
+.tooltip-bubble.bottom {
+  top: calc(100% + 8px);
+  left: 50%;
+  transform-origin: top center;
+}
+
+.tooltip-wrapper:hover .tooltip-bubble.bottom {
+  transform: scale(1) translateX(-50%);
+}
+
+.tooltip-bubble.bottom:not(:hover) {
+  transform: scale(0.8) translateX(-50%);
+}
+
+.tooltip-bubble.left {
+  right: calc(100% + 8px);
+  top: 50%;
+  transform-origin: right center;
+}
+
+.tooltip-wrapper:hover .tooltip-bubble.left {
+  transform: scale(1) translateY(-50%);
+}
+
+.tooltip-bubble.right {
+  left: calc(100% + 8px);
+  top: 50%;
+  transform-origin: left center;
+}
+
+.tooltip-wrapper:hover .tooltip-bubble.right {
+  transform: scale(1) translateY(-50%);
+}
+
+.tooltip-arrow {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #1a1b1c;
+  border: 1px solid #444;
+  transform: rotate(45deg);
+}
+
+.tooltip-bubble.top .tooltip-arrow {
+  bottom: -5px;
+  left: 50%;
+  margin-left: -4px;
+  border-top: none;
+  border-left: none;
+}
+
+.tooltip-bubble.bottom .tooltip-arrow {
+  top: -5px;
+  left: 50%;
+  margin-left: -4px;
+  border-bottom: none;
+  border-right: none;
+}

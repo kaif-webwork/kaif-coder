@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- SEO Improvements: Core Meta Tags -->
+    <title>Manish Kumar | Full Stack Developer | MERN & Java Full Stack</title>
+    <meta
+      name="description"
+      content="Manish Kumar is a Full Stack Developer specializing in MERN Stack, Java Spring Boot, and building end-to-end applications. Pursuing B.Tech in Computer Science & Engineering. Explore projects, skills, and contact for collaborations."
+    />
+    <meta
+      name="keywords"
+      content="Manish Kumar, Full Stack Developer, MERN Stack, Java Developer, Spring Boot, React, Node.js, Express, MongoDB, MySQL, Docker, GitHub, Portfolio, Software Engineer, India"
+    />
+    <meta name="author" content="Manish Kumar" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph Tags for Social Sharing (e.g., LinkedIn, X/Twitter, Facebook) -->
+    <meta
+      property="og:title"
+      content="Manish Kumar | Full Stack Developer | MERN & Java Full Stack"
+    />
+    <meta
+      property="og:description"
+      content="Building real-world applications with Java, MERN Stack, microservices, and cloud technologies. Open to opportunities in software development."
+    />
+    <meta
+      property="og:image"
+      content="https://manixh.vercel.app/og/og-image.png?v=2"
+    />
+    <meta property="og:url" content="https://manixh.vercel.app/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Manish Kumar Portfolio" />
+
+    <!-- Twitter Card Tags (for better X/Twitter sharing) -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Manish Kumar | Full Stack Developer | MERN & Java Full Stack"
+    />
+    <meta
+      name="twitter:description"
+      content="Full Stack Developer focused on Java, MERN, microservices, and cloud. Check out my projects and get in touch!"
+    />
+    <meta
+      name="twitter:image"
+      content="https://manixh.vercel.app/og/og-image.png?v=2"
+    />
+    <meta name="twitter:site" content="@Manixh02" />
+
+    <!-- Additional SEO: Canonical URL, Structured Data (JSON-LD for Person) -->
+    <link rel="canonical" href="https://manixh.vercel.app/" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Manish Kumar",
+        "jobTitle": "Full Stack Developer",
+        "url": "https://manixh.vercel.app/",
+        "sameAs": [
+          "https://x.com/Manixh02",
+          "https://github.com/ig-imanish",
+          "https://www.linkedin.com/in/imanish02"
+        ],
+        "description": "B.Tech Computer Science student and Full Stack Developer skilled in Java Spring Boot, MERN Stack, Docker, and cloud technologies. Building projects like BlogZone and SHORTxURL.",
+        "alumniOf": {
+          "@type": "EducationalOrganization",
+          "name": "B.Tech in Computer Science and Engineering",
+          "location": "India"
+        },
+        "knowsAbout": [
+          "Java",
+          "Spring Boot",
+          "Node.js",
+          "Express.js",
+          "React",
+          "MongoDB",
+          "MySQL",
+          "Docker",
+          "Git",
+          "Microservices",
+          "Cloud Computing"
+        ]
+      }
+    </script>
+
+    <!-- Fonts: only the families/weights actually used in src/ (Figtree + JetBrains Mono) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" crossorigin src="/assets/index-nC3ZRHnq.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-D541DBAI.css">
+  </head>
+  <body>
+
+
+    <div id="root"></div>
+  </body>
+</html>

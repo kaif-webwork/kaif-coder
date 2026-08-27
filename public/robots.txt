@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://kaifcoder.in/sitemap.xml
+Host: https://kaifcoder.in

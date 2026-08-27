@@ -1,0 +1,53 @@
+.pixelated-image-card {
+  background-color: #18181b;
+  color: var(--color-primary, #fff);
+  border-radius: 16px;
+  border: 2px solid #232326;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.pixelated-image-card__spacer {
+  width: 100%;
+  pointer-events: none;
+}
+
+.pixelated-image-card__default,
+.pixelated-image-card__active,
+.pixelated-image-card__pixels {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  inset: 0;
+}
+
+.pixelated-image-card__default {
+  z-index: 1;
+}
+
+.pixelated-image-card__active {
+  z-index: 2;
+  display: none;
+}
+
+.pixelated-image-card__pixels {
+  pointer-events: none;
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.pixelated-image-card__pixel {
+  display: none;
+  position: absolute;
+  pointer-events: none;
+}

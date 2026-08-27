@@ -1,0 +1,102 @@
+.not-found-page {
+  max-width: 700px;
+  min-height: calc(100vh - 120px);
+  margin: 0 auto;
+  padding: 80px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.not-found-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+  animation: glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+  }
+  to {
+    text-shadow: 0 0 25px rgba(255, 255, 255, 0.6), 0 0 50px rgba(59, 130, 246, 0.3);
+  }
+}
+
+.not-found-title {
+  font-family: 'Figtree', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 12px;
+  letter-spacing: -0.01em;
+}
+
+.not-found-desc {
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.95rem;
+  color: #b3b3b3;
+  line-height: 1.6;
+  max-width: 420px;
+  margin-bottom: 28px;
+}
+
+.not-found-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #ffffff;
+  background: #1a1b1c;
+  border: 1px solid #444;
+  border-radius: 0px;
+  padding: 10px 24px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow:
+    0px 32px 64px -16px #0006,
+    0px 16px 32px -8px #0006,
+    0px 8px 16px -4px #0004,
+    0px 4px 8px -2px #0004,
+    0px -8px 16px -1px #0003,
+    0px 2px 4px -1px #0004,
+    0px 0px 0px 1px #000,
+    inset 0px 0px 0px 1px #ffffff14,
+    inset 0px 1px 0px #ffffff33;
+}
+
+.not-found-btn:hover {
+  border-color: #888;
+  background: #232326;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 700px) {
+  .not-found-code {
+    font-size: 6rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .not-found-code {
+    font-size: 4rem;
+  }
+  .not-found-title {
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 354px) {
+  .not-found-code {
+    font-size: 3.5rem;
+  }
+}

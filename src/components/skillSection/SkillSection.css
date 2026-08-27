@@ -1,0 +1,90 @@
+.skill-section {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 32px 18px 0;
+}
+
+.skill-marquee-container {
+  overflow: hidden;
+  margin-bottom: 14px;
+  position: relative;
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
+}
+
+.skill-marquee {
+  display: flex;
+  gap: 22px;
+  width: max-content;
+  animation: marqueeScroll 40s linear infinite;
+}
+
+.skill-marquee.reverse {
+  animation: marqueeScrollReverse 40s linear infinite;
+}
+
+.skill-marquee:hover {
+  animation-play-state: paused;
+}
+
+@keyframes marqueeScroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-33.33%);
+  }
+}
+
+@keyframes marqueeScrollReverse {
+  0% {
+    transform: translateX(-33.33%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.skill-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  padding: 4px 6px;
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #ffffff;
+  white-space: nowrap;
+  user-select: none;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  opacity: 0.9;
+}
+
+.skill-pill:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
+.skill-pill-icon {
+  font-size: 1.15rem;
+  display: flex;
+  align-items: center;
+}
+
+.skill-section-divider {
+  display: none;
+}
