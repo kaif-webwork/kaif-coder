@@ -1,12 +1,20 @@
 import { Link } from 'react-router';
 import { HiArrowLeft, HiOutlineEnvelope, HiOutlineSparkles, HiOutlineClock } from 'react-icons/hi2';
 import { FaGithub } from 'react-icons/fa';
+import { useSEO } from '../../hooks/useSEO';
 import SectionTitle from '../../components/sectionTitle/SectionTitle';
 import Footer from '../../components/footer/Footer';
 import { playClickSound } from '../../utils/sound';
 import './ResumeLayout.css';
 
 export default function ResumeLayout() {
+  useSEO({
+    title: 'Resume | Mohd Kaif - Full Stack Developer • kaifcoder.in',
+    description:
+      'Mohd Kaif (kaifcoder / kaif coder) Full Stack Developer resume. Skills in React, TypeScript, Node.js, Python, MongoDB, MySQL, and scalable systems.',
+    canonical: 'https://www.kaifcoder.in/resume',
+  });
+
   return (
     <div className="resume-page-wrapper">
       <div className="resume-page">

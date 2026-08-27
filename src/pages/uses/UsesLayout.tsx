@@ -1,10 +1,18 @@
 import { HiArrowTopRightOnSquare } from 'react-icons/hi2';
+import { useSEO } from '../../hooks/useSEO';
 import { usesData } from '../../data/uses';
 import SectionTitle from '../../components/sectionTitle/SectionTitle';
 import Footer from '../../components/footer/Footer';
 import './UsesLayout.css';
 
 export default function UsesLayout() {
+  useSEO({
+    title: 'Gear & Tech Stack | Mohd Kaif (kaifcoder) • kaifcoder.in',
+    description:
+      'Explore the software, hardware, IDE setup, and developer gear used daily by Mohd Kaif (kaifcoder / kaif coder).',
+    canonical: 'https://www.kaifcoder.in/uses',
+  });
+
   return (
     <div className="uses-page-wrapper">
       <div className="uses-page">

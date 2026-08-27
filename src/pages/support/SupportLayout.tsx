@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
+import { useSEO } from '../../hooks/useSEO';
 import { FaPaypal, FaGithub, FaCoffee, FaChevronDown, FaCheck, FaCopy } from 'react-icons/fa';
 import { HiArrowLeft, HiArrowRight, HiQrCode, HiOutlineLink } from 'react-icons/hi2';
 import { SiTether, SiSolana, SiBitcoin, SiEthereum, SiBinance } from 'react-icons/si';
@@ -74,6 +75,13 @@ const cryptoData: CryptoOption[] = [
 ];
 
 export default function SupportLayout() {
+  useSEO({
+    title: 'Support & Sponsor Mohd Kaif (@kaif_coder) • kaifcoder.in',
+    description:
+      'Support open-source development by Mohd Kaif (kaifcoder / kaif coder). Contribute via UPI, Crypto (USDT, TON, USDC, BTC, ETH, SOL), Buy Me a Coffee, or GitHub Sponsors.',
+    canonical: 'https://www.kaifcoder.in/support',
+  });
+
   const [selectedCoinIdx, setSelectedCoinIdx] = useState<number>(0);
   const [selectedNetworkIdx, setSelectedNetworkIdx] = useState<number>(0);
   const [showCoinDropdown, setShowCoinDropdown] = useState<boolean>(false);

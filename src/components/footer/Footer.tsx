@@ -37,7 +37,7 @@ export default function Footer() {
       </div>
 
       <div className="footer-bottom-row">
-        <span>{new Date().getFullYear()}. All rights reserved</span>
+        <span>© {new Date().getFullYear()} Mohd Kaif (kaifcoder.in) • All rights reserved</span>
         <span className="footer-clock-text">{istTime || '15:18:51'} IST</span>
       </div>
     </footer>

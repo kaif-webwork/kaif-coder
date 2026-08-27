@@ -1,10 +1,18 @@
 import { Link } from 'react-router';
+import { useSEO } from '../../hooks/useSEO';
 import Footer from '../../components/footer/Footer';
 import './BlogLayout.css';
 
 import { blogPosts } from '../../data/blogs';
 
 export default function BlogLayout() {
+  useSEO({
+    title: 'Engineering Blog & Articles | Mohd Kaif • kaifcoder.in',
+    description:
+      'Technical blog posts and software architecture tutorials written by Mohd Kaif (kaifcoder / kaif coder). Insights on modern web development and scaling apps.',
+    canonical: 'https://www.kaifcoder.in/blogs',
+  });
+
   return (
     <div className="blog-layout-wrapper">
       <div className="blog-layout-page">

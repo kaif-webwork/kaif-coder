@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router';
+import { useSEO } from '../../hooks/useSEO';
 import { FaGithub, FaAndroid, FaApple, FaGlobe, FaStar, FaShieldAlt } from 'react-icons/fa';
 import {
   HiArrowLeft,
@@ -54,6 +55,13 @@ const carouselSlides = [
 ];
 
 export default function AdZeroPreview() {
+  useSEO({
+    title: 'AdZero (v4.4) by Mohd Kaif | 100% Ad-Free Android App • kaifcoder.in',
+    description:
+      'Download AdZero v4.4 APK built with Kotlin & Material 3 by Mohd Kaif (kaifcoder / kaif coder). Enjoy uninterrupted, sponsor-free media streaming with background playback and privacy.',
+    canonical: 'https://www.kaifcoder.in/projects/adzero',
+  });
+
   const [currentSlideIdx, setCurrentSlideIdx] = useState<number>(0);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState<boolean>(false);
