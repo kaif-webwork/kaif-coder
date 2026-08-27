@@ -599,8 +599,8 @@
     width: 100%;
   }
 
-  .support-toggle-qr-btn,
-  .support-copy-btn {
+  .support-upi-actions .support-toggle-qr-btn,
+  .support-upi-actions .support-copy-btn {
     width: 100%;
     justify-content: center;
     padding: 7px 10px;
@@ -614,9 +614,34 @@
 
   .support-crypto-address-box {
     padding: 14px 14px;
+    overflow: hidden;
+  }
+
+  .support-address-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .support-address-header-row .support-copy-btn {
+    width: auto;
+    flex-shrink: 0;
+    padding: 4px 10px;
+    font-size: 0.76rem;
   }
 
   .support-address-code {
+    font-size: 0.8rem;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+  }
+
+  .support-address-footer-row .support-toggle-qr-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 7px 12px;
     font-size: 0.8rem;
   }
 }
