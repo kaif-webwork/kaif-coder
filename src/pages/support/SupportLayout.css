@@ -106,6 +106,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   transition: border-color 0.2s ease;
 }
 
@@ -117,6 +118,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .support-upi-rupee-badge {
@@ -133,18 +135,21 @@
   font-weight: 700;
   font-size: 0.9rem;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
 }
 
 .support-upi-id {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.88rem;
   color: #ffffff;
+  word-break: break-all;
 }
 
 .support-upi-actions {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .support-upi-rupee-badge-large {
@@ -573,6 +578,33 @@
   .support-quick-grid {
     grid-template-columns: 1fr;
     gap: 10px;
+  }
+
+  .support-upi-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px 14px;
+  }
+
+  .support-upi-left {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .support-upi-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .support-toggle-qr-btn,
+  .support-copy-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 7px 10px;
+    font-size: 0.8rem;
   }
 
   .support-crypto-selectors {
