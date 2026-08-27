@@ -68,8 +68,9 @@ export default function AdZeroPreview() {
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
 
-  // Preload all carousel slides into browser memory to eliminate flash/glitch
+  // Scroll to top on mount & preload all carousel slides into browser memory
   useEffect(() => {
+    window.scrollTo(0, 0);
     carouselSlides.forEach((slide) => {
       const img = new Image();
       img.src = slide.src;

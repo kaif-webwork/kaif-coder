@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { Analytics } from '@vercel/analytics/react';
+import ScrollToTop from './components/ScrollToTop';
 import Navbar from './components/navbar/Navbar';
 import ClickSpark from './components/ClickSpark';
 import Loading from './components/loading/Loading';
@@ -21,6 +22,7 @@ const PageNotFound = lazy(() => import('./pages/notFound/PageNotFound'));
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Navbar />
       <ClickSpark sparkColor="#ffffff" sparkSize={10} sparkRadius={16}>
         <Suspense fallback={<Loading />}>
