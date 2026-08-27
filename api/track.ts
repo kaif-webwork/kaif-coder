@@ -1,11 +1,14 @@
 import { Redis } from '@upstash/redis';
 
+declare const process: { env: Record<string, string | undefined> };
+
 let redisInstance: Redis | null = null;
 
 function getRedis(): Redis | null {
   if (redisInstance) return redisInstance;
   try {
-    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    const env = typeof process !== 'undefined' ? process.env : undefined;
+    if (env?.UPSTASH_REDIS_REST_URL && env?.UPSTASH_REDIS_REST_TOKEN) {
       redisInstance = Redis.fromEnv();
       return redisInstance;
     }
