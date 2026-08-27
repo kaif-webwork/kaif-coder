@@ -7,8 +7,8 @@ interface SEOProps {
 }
 
 export function useSEO({
-  title = 'Mohd Kaif | Full Stack Developer (@kaif_coder) • kaifcoder.in',
-  description = 'Official portfolio of Mohd Kaif (kaifcoder / kaif coder). Full Stack Developer based in Delhi, India specializing in scalable web & mobile apps with React, TypeScript, Node.js, and Python. Open source creator of AdZero.',
+  title = 'Mohd Kaif | Full Stack Developer | Portfolio',
+  description = 'Mohd Kaif (kaifcoder) is a Full Stack Developer based in Delhi, India. Creator of AdZero, building high-performance web & mobile applications with React, TypeScript, Node.js, and Python.',
   canonical = 'https://www.kaifcoder.in/',
 }: SEOProps = {}) {
   useEffect(() => {

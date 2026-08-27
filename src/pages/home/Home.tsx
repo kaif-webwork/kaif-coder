@@ -10,9 +10,9 @@ import Footer from '../../components/footer/Footer';
 
 export default function Home() {
   useSEO({
-    title: 'Mohd Kaif (kaifcoder) | Full Stack Developer • kaifcoder.in',
+    title: 'Mohd Kaif | Full Stack Developer | Portfolio',
     description:
-      'Mohd Kaif (kaifcoder / kaif coder) is a Full Stack Developer based in Delhi, India. Building scalable web & mobile apps with React, TypeScript, Node.js, Python, and open source projects.',
+      'Mohd Kaif (kaifcoder) is a Full Stack Developer based in Delhi, India. Creator of AdZero, building high-performance web & mobile applications with React, TypeScript, Node.js, and Python.',
     canonical: 'https://www.kaifcoder.in/',
   });
 
