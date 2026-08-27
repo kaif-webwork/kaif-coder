@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
+import QRCode from 'qrcode';
 import { useSEO } from '../../hooks/useSEO';
 import { FaPaypal, FaGithub, FaCoffee, FaChevronDown, FaCheck, FaCopy } from 'react-icons/fa';
 import { HiArrowLeft, HiArrowRight, HiQrCode, HiOutlineLink } from 'react-icons/hi2';
@@ -91,9 +92,32 @@ export default function SupportLayout() {
   const [qrActive, setQrActive] = useState<boolean>(true);
   const [showUpiQR, setShowUpiQR] = useState<boolean>(false);
   const [upiQrActive, setUpiQrActive] = useState<boolean>(true);
+  const [upiQrDataUrl, setUpiQrDataUrl] = useState<string>('');
+  const [cryptoQrDataUrl, setCryptoQrDataUrl] = useState<string>('');
 
   const selectedCoin = cryptoData[selectedCoinIdx];
   const selectedNetwork = selectedCoin.networks[selectedNetworkIdx] || selectedCoin.networks[0];
+
+  // Pre-generate UPI QR code locally in 0ms (no network latency)
+  useEffect(() => {
+    const upiUri = 'upi://pay?pa=kaifc0der@ptyes&pn=Mohd%20Kaif&cu=INR';
+    void QRCode.toDataURL(upiUri, {
+      margin: 1,
+      width: 300,
+      color: { dark: '#000000', light: '#ffffff' },
+    }).then(setUpiQrDataUrl);
+  }, []);
+
+  // Pre-generate Crypto QR code locally in 0ms (no network latency)
+  useEffect(() => {
+    if (selectedNetwork.address) {
+      void QRCode.toDataURL(selectedNetwork.address, {
+        margin: 1,
+        width: 300,
+        color: { dark: '#000000', light: '#ffffff' },
+      }).then(setCryptoQrDataUrl);
+    }
+  }, [selectedNetwork.address]);
 
   const handleCopy = (key: string, text: string) => {
     playClickSound();
@@ -270,12 +294,15 @@ export default function SupportLayout() {
                     </div>
                   }
                   secondContent={
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent('upi://pay?pa=kaifc0der@ptyes&pn=Mohd%20Kaif&cu=INR')}`}
-                      alt="UPI QR Code"
-                      className="support-dynamic-qr-image"
-                      loading="eager"
-                    />
+                    upiQrDataUrl ? (
+                      <img
+                        src={upiQrDataUrl}
+                        alt="UPI QR Code"
+                        className="support-dynamic-qr-image"
+                      />
+                    ) : (
+                      <div className="support-dynamic-qr-image" />
+                    )
                   }
                   gridSize={12}
                   pixelColor="#ffffff"
@@ -442,13 +469,16 @@ export default function SupportLayout() {
                       </div>
                     }
                     secondContent={
-                      <img
-                        key={selectedNetwork.address}
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(selectedNetwork.address)}`}
-                        alt={`${selectedCoin.coin} (${selectedNetwork.network}) QR Code`}
-                        className="support-dynamic-qr-image"
-                        loading="eager"
-                      />
+                      cryptoQrDataUrl ? (
+                        <img
+                          key={selectedNetwork.address}
+                          src={cryptoQrDataUrl}
+                          alt={`${selectedCoin.coin} (${selectedNetwork.network}) QR Code`}
+                          className="support-dynamic-qr-image"
+                        />
+                      ) : (
+                        <div className="support-dynamic-qr-image" />
+                      )
                     }
                     gridSize={12}
                     pixelColor="#ffffff"
