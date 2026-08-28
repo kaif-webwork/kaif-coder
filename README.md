@@ -1,4 +1,4 @@
-# Mohd Kaif | Full Stack Developerb| Portfolio 🚀
+# Mohd Kaif | Full Stack Developer| Portfolio 🚀
 
 Official personal developer portfolio of **Mohd Kaif** ([@kaif_coder](https://x.com/kaif_coder)) hosted at **[kaifcoder.in](https://kaifcoder.in)**.
 
