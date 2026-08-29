@@ -527,6 +527,19 @@
   display: none;
 }
 
+@media (max-width: 768px), (hover: none) {
+  .hero-avatar-wrapper[data-tooltip]::before,
+  .hero-avatar-wrapper[data-tooltip]::after,
+  .hero-avatar-wrapper[data-tooltip]:hover::before,
+  .hero-avatar-wrapper[data-tooltip]:hover::after {
+    display: none !important;
+    content: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+}
+
 @media (max-width: 600px) {
   .hero-section {
     padding: 24px 14px 0;
