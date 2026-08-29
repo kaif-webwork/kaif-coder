@@ -5,6 +5,7 @@ import ScrollToTop from './components/ScrollToTop';
 import Navbar from './components/navbar/Navbar';
 import ClickSpark from './components/ClickSpark';
 import Loading from './components/loading/Loading';
+import { usePageTracker } from './hooks/usePageTracker';
 import './App.css';
 
 // Lazy-loaded route components
@@ -19,9 +20,15 @@ const SupportLayout = lazy(() => import('./pages/support/SupportLayout'));
 const AdZeroPreview = lazy(() => import('./pages/projects/AdZeroPreview'));
 const PageNotFound = lazy(() => import('./pages/notFound/PageNotFound'));
 
+function PageTracker() {
+  usePageTracker();
+  return null;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
+      <PageTracker />
       <ScrollToTop />
       <Navbar />
       <ClickSpark sparkColor="#ffffff" sparkSize={10} sparkRadius={16}>

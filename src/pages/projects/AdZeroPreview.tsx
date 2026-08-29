@@ -129,10 +129,10 @@ export default function AdZeroPreview() {
 
     // Trigger swipe when horizontal gesture is stronger than vertical scroll
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 35) {
-      if (deltaX > 0) {
-        handleNext(); // Swipe Right -> Next Image
+      if (deltaX < 0) {
+        handleNext(); // Swipe Left -> Next Slide
       } else {
-        handlePrev(); // Swipe Left -> Previous Image
+        handlePrev(); // Swipe Right -> Previous Slide
       }
     }
 

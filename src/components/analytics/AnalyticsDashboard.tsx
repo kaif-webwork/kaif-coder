@@ -10,8 +10,12 @@ export default function AnalyticsDashboard() {
   const [period, setPeriod] = useState<Period>('7d');
   const { data, loading } = useAnalytics(period);
 
-  const visitorsCount = data?.visitors ?? 268;
-  const pageviewsCount = data?.pageviews ?? 799;
+  const visitorsCount = data?.visitors ?? 0;
+  const pageviewsCount = data?.pageviews ?? 0;
+  const visitorsGrowth = data?.growthVisitors ?? '0.0%';
+  const pageviewsGrowth = data?.growthPageviews ?? '0.0%';
+  const visitorsStatus = data?.growthVisitorsStatus ?? 'neutral';
+  const pageviewsStatus = data?.growthPageviewsStatus ?? 'neutral';
 
   return (
     <div className="analytics-dashboard">
@@ -19,14 +23,22 @@ export default function AnalyticsDashboard() {
       <div className="analytics-stats-row">
         <div className="analytics-stat-card">
           <div className="analytics-stat-label">Visitors</div>
-          <div className="analytics-stat-value">{visitorsCount}</div>
-          <div className="analytics-stat-indicator down">↓ 33.0%</div>
+          <div className="analytics-stat-value">
+            {loading && !data ? '...' : visitorsCount.toLocaleString()}
+          </div>
+          <div className={`analytics-stat-indicator ${visitorsStatus}`}>
+            {visitorsGrowth}
+          </div>
         </div>
 
         <div className="analytics-stat-card">
           <div className="analytics-stat-label">Page Views</div>
-          <div className="analytics-stat-value">{pageviewsCount}</div>
-          <div className="analytics-stat-indicator down">↓ 23.4%</div>
+          <div className="analytics-stat-value">
+            {loading && !data ? '...' : pageviewsCount.toLocaleString()}
+          </div>
+          <div className={`analytics-stat-indicator ${pageviewsStatus}`}>
+            {pageviewsGrowth}
+          </div>
         </div>
       </div>
 

@@ -17,46 +17,6 @@ export default function Loading() {
               <stop offset="100%" stopColor="#0e0f12" />
             </radialGradient>
 
-            {/* Neon Glow Filters */}
-            <filter id="glow-purple" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-
-            <filter id="glow-cyan" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-
-            <filter id="glow-yellow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-
-            <filter id="glow-green" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-
-            <filter id="glow-orange" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
           </defs>
 
           {/* ================= BACKGROUND CIRCUIT TRACES ================= */}
@@ -72,7 +32,7 @@ export default function Loading() {
           <path className="circuit-trace-base" d="M 410 138 H 578" />
           <path className="circuit-trace-base" d="M 410 156 H 465 V 196 H 550" />
 
-          {/* ================= ANIMATED PULSE TRAVELERS ================= */}
+          {/* ================= ANIMATED PULSE TRAVELERS (SINGLE CLEAN LIGHT LINE) ================= */}
           <path className="circuit-pulse pulse-purple" d="M 50 36 H 135 V 102 H 190" />
           <path className="circuit-pulse pulse-cyan" d="M 35 82 H 118 V 120 H 190" />
           <path className="circuit-pulse pulse-yellow" d="M 22 134 H 95 V 138 H 190" />
@@ -82,19 +42,6 @@ export default function Loading() {
           <path className="circuit-pulse pulse-green-r" d="M 565 82 H 482 V 120 H 410" />
           <path className="circuit-pulse pulse-orange" d="M 578 138 H 410" />
           <path className="circuit-pulse pulse-yellow-r" d="M 550 196 H 465 V 156 H 410" />
-
-          {/* ================= NEON GLOW LEADS (COLORED WIRE ENDS) ================= */}
-          {/* Left Neon Leads */}
-          <line x1="50" y1="36" x2="82" y2="36" stroke="#c084fc" strokeWidth="2.5" filter="url(#glow-purple)" strokeLinecap="round" />
-          <line x1="35" y1="82" x2="68" y2="82" stroke="#38bdf8" strokeWidth="2.5" filter="url(#glow-cyan)" strokeLinecap="round" />
-          <line x1="22" y1="134" x2="52" y2="134" stroke="#facc15" strokeWidth="2.5" filter="url(#glow-yellow)" strokeLinecap="round" />
-          <line x1="50" y1="196" x2="80" y2="196" stroke="#22c55e" strokeWidth="2.5" filter="url(#glow-green)" strokeLinecap="round" />
-
-          {/* Right Neon Leads */}
-          <line x1="518" y1="36" x2="550" y2="36" stroke="#38bdf8" strokeWidth="2.5" filter="url(#glow-cyan)" strokeLinecap="round" />
-          <line x1="533" y1="82" x2="565" y2="82" stroke="#22c55e" strokeWidth="2.5" filter="url(#glow-green)" strokeLinecap="round" />
-          <line x1="546" y1="138" x2="578" y2="138" stroke="#f97316" strokeWidth="2.5" filter="url(#glow-orange)" strokeLinecap="round" />
-          <line x1="518" y1="196" x2="550" y2="196" stroke="#facc15" strokeWidth="2.5" filter="url(#glow-yellow)" strokeLinecap="round" />
 
           {/* ================= TERMINAL BLACK NODES ================= */}
           {/* Left Terminal Nodes */}

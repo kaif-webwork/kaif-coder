@@ -11,8 +11,8 @@
 }
 
 .chip-loader-container {
-  width: 100%;
-  max-width: 600px;
+  width: 90vw;
+  max-width: 880px;
   padding: 20px;
   display: flex;
   align-items: center;
@@ -35,10 +35,10 @@
   stroke-linejoin: round;
 }
 
-/* Pulse Travelers along Wires */
+/* Pulse Travelers along Wires (Sharp, Crisp Light Lines) */
 .circuit-pulse {
   fill: none;
-  stroke-width: 2.2;
+  stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-dasharray: 40 200;
@@ -47,51 +47,45 @@
 
 .pulse-purple {
   stroke: #c084fc;
-  filter: url(#glow-purple);
   animation-delay: 0s;
 }
 
 .pulse-cyan {
   stroke: #38bdf8;
-  filter: url(#glow-cyan);
   animation-delay: 0.4s;
 }
 
 .pulse-yellow {
   stroke: #facc15;
-  filter: url(#glow-yellow);
   animation-delay: 0.8s;
 }
 
 .pulse-green {
   stroke: #22c55e;
-  filter: url(#glow-green);
   animation-delay: 1.2s;
 }
 
 .pulse-cyan-r {
   stroke: #38bdf8;
-  filter: url(#glow-cyan);
   animation-delay: 0.2s;
 }
 
 .pulse-green-r {
   stroke: #22c55e;
-  filter: url(#glow-green);
   animation-delay: 0.6s;
 }
 
 .pulse-orange {
-  stroke: #f97316;
-  filter: url(#glow-orange);
+  stroke: #ff7a00;
   animation-delay: 1.0s;
 }
 
 .pulse-yellow-r {
   stroke: #facc15;
-  filter: url(#glow-yellow);
   animation-delay: 1.4s;
 }
+
+
 
 @keyframes pulse-stream {
   0% {

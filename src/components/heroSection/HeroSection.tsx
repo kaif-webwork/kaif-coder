@@ -4,7 +4,7 @@ import { HiOutlineEnvelope, HiOutlineSparkles } from 'react-icons/hi2';
 import { FaGithub, FaInstagram, FaLinkedinIn } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { HiOutlineDocumentDownload } from 'react-icons/hi';
-import { IoGridOutline, IoLocationOutline, IoTimeOutline } from 'react-icons/io5';
+import { IoLocationOutline, IoTimeOutline } from 'react-icons/io5';
 import PixelTransition from '../pixelTransition/PixelTransition';
 import { userImages } from '../../data/images';
 import { playQrToggleSound, playClickSound } from '../../utils/sound';
@@ -44,6 +44,7 @@ export default function HeroSection() {
         <div
           className="hero-avatar-wrapper"
           onClick={handleToggleQR}
+          data-tooltip={showQR ? 'Tap for Photo' : 'Tap to QR'}
           title={showQR ? 'Click to show Photo' : 'Click to show QR Code'}
           role="button"
           tabIndex={0}
@@ -79,18 +80,6 @@ export default function HeroSection() {
             aspectRatio="100%"
             className="hero-pixel-avatar"
           />
-          <button
-            type="button"
-            className={`hero-qr-toggle ${showQR ? 'active' : ''}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleToggleQR();
-            }}
-            aria-label={showQR ? 'Show Avatar' : 'Show QR Code'}
-            title={showQR ? 'Show Avatar' : 'Scan QR Code'}
-          >
-            <IoGridOutline />
-          </button>
         </div>
 
         <div className="hero-info">

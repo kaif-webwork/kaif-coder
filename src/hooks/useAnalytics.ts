@@ -1,23 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { AnalyticsPeriod, AnalyticsData } from '../data/analytics';
+import { getRealAnalyticsForPeriod } from '../utils/realAnalyticsTracker';
 
 interface UseAnalyticsResult {
   data: AnalyticsData | null;
   loading: boolean;
   error: string | null;
   refetch: () => void;
-}
-
-function generateMockSeries(period: AnalyticsPeriod) {
-  const points = period === '24h' ? 24 : period === '7d' ? 7 : 30;
-  const now = Date.now();
-  const interval = period === '24h' ? 3600000 : 86400000;
-
-  return Array.from({ length: points }, (_, i) => ({
-    timestamp: now - (points - i) * interval,
-    pageviews: Math.floor(Math.random() * 80) + 20,
-    visitors: Math.floor(Math.random() * 40) + 10,
-  }));
 }
 
 export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
@@ -30,12 +19,28 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
     setRefreshKey((k) => k + 1);
   }, []);
 
+  // Listen for real-time local page view events
+  useEffect(() => {
+    const handleUpdate = () => {
+      setData(getRealAnalyticsForPeriod(period));
+    };
+
+    window.addEventListener('kaif_analytics_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('kaif_analytics_updated', handleUpdate);
+    };
+  }, [period]);
+
   useEffect(() => {
     let ignore = false;
 
     async function fetchData() {
       setLoading(true);
       setError(null);
+
+      // Start with real local storage data
+      const localRealData = getRealAnalyticsForPeriod(period);
+
       try {
         const response = await fetch(`/api/analytics?period=${period}`);
         if (!response.ok) {
@@ -43,16 +48,17 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
         }
         const json = (await response.json()) as AnalyticsData;
         if (!ignore) {
-          setData(json);
+          // If server has real recorded counts > 0, prefer server data; otherwise use real local tracked data
+          if (json && (json.pageviews > 0 || json.visitors > 0)) {
+            setData(json);
+          } else {
+            setData(localRealData);
+          }
         }
-      } catch (err) {
+      } catch {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Failed to fetch analytics');
-          setData({
-            pageviews: 1247,
-            visitors: 423,
-            series: generateMockSeries(period),
-          });
+          // Fallback to real tracked local storage data starting from actual 0/real visits
+          setData(localRealData);
         }
       } finally {
         if (!ignore) {

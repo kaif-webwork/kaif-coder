@@ -21,4 +21,10 @@ export interface AnalyticsData {
   pageviews: number;
   visitors: number;
   series: AnalyticsSeriesPoint[];
+  growthVisitors?: string;
+  growthPageviews?: string;
+  growthVisitorsStatus?: 'up' | 'down' | 'neutral';
+  growthPageviewsStatus?: 'up' | 'down' | 'neutral';
+  isVisitorsUp?: boolean;
+  isPageviewsUp?: boolean;
 }

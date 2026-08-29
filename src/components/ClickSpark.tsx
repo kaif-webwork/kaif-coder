@@ -124,15 +124,6 @@ export default function ClickSpark({
 
       sparksRef.current.push(...newSparks);
 
-      // Play click sound
-      try {
-        const audio = new Audio('/audio/click.mp3');
-        audio.volume = 0.15;
-        audio.play().catch(() => {});
-      } catch {
-        // Audio not available
-      }
-
       if (animFrameRef.current === 0 || sparksRef.current.length === sparkCount) {
         animFrameRef.current = requestAnimationFrame(() => {
           animateRef.current();

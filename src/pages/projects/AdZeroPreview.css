@@ -185,14 +185,18 @@
   font-size: 0.85rem;
 }
 
-/* Action Buttons */
+/* Action Buttons (Strictly Single Row) */
 .adzero-actions-row {
-  display: flex;
-  gap: 12px;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
 }
 
 .adzero-primary-btn {
-  flex: 1;
+  flex: 1.15;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -202,12 +206,14 @@
   border-radius: 8px;
   color: #ffffff;
   font-family: 'Figtree', sans-serif;
-  font-size: 0.86rem;
+  font-size: 0.84rem;
   font-weight: 600;
-  padding: 10px 16px;
+  padding: 9px 12px;
   text-decoration: none;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 4px rgba(0, 0, 0, 0.4);
   transition: all 0.2s ease;
+  white-space: nowrap;
+  touch-action: manipulation;
 }
 
 .adzero-primary-btn:hover {
@@ -222,6 +228,8 @@
 }
 
 .adzero-secondary-btn {
+  flex: 0.85;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -231,12 +239,14 @@
   border-radius: 8px;
   color: #a3a3a3;
   font-family: 'Figtree', sans-serif;
-  font-size: 0.86rem;
+  font-size: 0.84rem;
   font-weight: 500;
-  padding: 10px 18px;
+  padding: 9px 12px;
   text-decoration: none;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 4px rgba(0, 0, 0, 0.3);
   transition: all 0.2s ease;
+  white-space: nowrap;
+  touch-action: manipulation;
 }
 
 .adzero-secondary-btn:hover {
@@ -246,8 +256,13 @@
   transform: translateY(-1px);
 }
 
+.adzero-secondary-btn:active {
+  transform: translateY(1px);
+}
+
 .btn-icon {
-  font-size: 1rem;
+  font-size: 0.95rem;
+  flex-shrink: 0;
 }
 
 /* 2. Interactive Screenshot Carousel */
@@ -1158,6 +1173,114 @@
 }
 
 @media (max-width: 600px) {
+  .adzero-page-wrapper {
+    padding: 16px 12px 32px;
+  }
+
+  /* Compact Hero Header Card on Mobile */
+  .adzero-app-hero-card {
+    padding: 14px 12px;
+    margin: 8px 0 16px;
+  }
+
+  .adzero-hero-top-row {
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .adzero-app-logo-badge {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+  }
+
+  .adzero-logo-svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .adzero-title-row {
+    gap: 8px;
+    margin-bottom: 2px;
+  }
+
+  .adzero-app-title {
+    font-size: 1.15rem;
+  }
+
+  .adzero-version-tag {
+    font-size: 0.64rem;
+    padding: 1px 5px;
+  }
+
+  .adzero-app-subtitle {
+    font-size: 0.78rem;
+    margin: 0 0 3px 0;
+  }
+
+  .adzero-app-developer {
+    font-size: 0.7rem;
+  }
+
+  .adzero-stats-bar {
+    padding: 8px 6px;
+    margin-bottom: 12px;
+    gap: 2px;
+  }
+
+  .adzero-stat-val {
+    font-size: 0.8rem;
+    gap: 3px;
+  }
+
+  .adzero-stat-lbl {
+    font-size: 0.6rem;
+    white-space: nowrap;
+  }
+
+  .adzero-stat-divider {
+    height: 20px;
+  }
+
+  .star-icon,
+  .android-icon,
+  .shield-icon,
+  .kotlin-icon {
+    font-size: 0.75rem;
+  }
+
+  .adzero-actions-row {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .adzero-primary-btn {
+    flex: 1.15;
+    min-width: 0;
+    padding: 8px 8px;
+    font-size: 0.76rem;
+    border-radius: 6px;
+    gap: 5px;
+    white-space: nowrap;
+  }
+
+  .adzero-secondary-btn {
+    flex: 0.85;
+    min-width: 0;
+    padding: 8px 8px;
+    font-size: 0.76rem;
+    border-radius: 6px;
+    gap: 5px;
+    white-space: nowrap;
+  }
+
+  .btn-icon {
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
   .adzero-lightbox-overlay {
     padding: 10px;
   }
@@ -1180,5 +1303,54 @@
 
   .adzero-lightbox-nav-btn.next {
     right: 2px;
+  }
+}
+
+@media (max-width: 400px) {
+  .adzero-app-hero-card {
+    padding: 12px 10px;
+  }
+
+  .adzero-app-logo-badge {
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+  }
+
+  .adzero-logo-svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .adzero-app-title {
+    font-size: 1.05rem;
+  }
+
+  .adzero-stats-bar {
+    padding: 6px 4px;
+  }
+
+  .adzero-stat-val {
+    font-size: 0.74rem;
+  }
+
+  .adzero-stat-lbl {
+    font-size: 0.56rem;
+  }
+
+  .adzero-actions-row {
+    gap: 6px;
+  }
+
+  .adzero-primary-btn {
+    padding: 7px 6px;
+    font-size: 0.72rem;
+    gap: 4px;
+  }
+
+  .adzero-secondary-btn {
+    padding: 7px 6px;
+    font-size: 0.72rem;
+    gap: 4px;
   }
 }

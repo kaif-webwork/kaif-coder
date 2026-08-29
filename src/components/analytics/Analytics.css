@@ -62,6 +62,10 @@
   color: #22c55e;
 }
 
+.analytics-stat-indicator.neutral {
+  color: #888888;
+}
+
 /* Chart Box */
 .analytics-chart-box {
   background: #0b0d0e;

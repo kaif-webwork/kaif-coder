@@ -18,7 +18,7 @@ function getRedis(): Redis | null {
   return null;
 }
 
-// Get date key like "2026-08-26"
+// Get date key like "2026-08-29"
 function getDateKey(date: Date = new Date()): string {
   return date.toISOString().slice(0, 10);
 }
@@ -52,18 +52,30 @@ export default async function handler(req: Request) {
       });
     }
 
-    const today = getDateKey();
+    const now = new Date();
+    const today = getDateKey(now);
+    const hour = String(now.getUTCHours()).padStart(2, '0');
+
     const forwarded = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip');
     const ip = forwarded ? forwarded.split(',')[0].trim() : '127.0.0.1';
     const visitorHash = hashIP(ip + today); // salted per day for privacy
 
-    // Increment page views & unique visitor
-    await Promise.all([
-      redis.hincrby(`pv:${today}`, 'count', 1),
-      redis.sadd(`uv:${today}`, visitorHash),
-      redis.expire(`pv:${today}`, 35 * 86400),
-      redis.expire(`uv:${today}`, 35 * 86400),
-    ]);
+    // Strict 1-per-user tracking: check if visitor already visited today
+    const isNewVisitorToday = !(await redis.sismember(`uv:${today}`, visitorHash));
+
+    if (isNewVisitorToday) {
+      const pipeline = redis.pipeline();
+      pipeline.sadd(`uv:${today}`, visitorHash);
+      pipeline.sadd(`uvh:${today}:${hour}`, visitorHash);
+      pipeline.hincrby(`pv:${today}`, 'count', 1);
+      pipeline.incr(`pvh:${today}:${hour}`);
+      pipeline.incr('pv:total');
+      pipeline.expire(`uv:${today}`, 90 * 86400);
+      pipeline.expire(`uvh:${today}:${hour}`, 7 * 86400);
+      pipeline.expire(`pv:${today}`, 90 * 86400);
+      pipeline.expire(`pvh:${today}:${hour}`, 7 * 86400);
+      await pipeline.exec();
+    }
 
     return new Response(JSON.stringify({ ok: true }), {
       headers: {
@@ -76,7 +88,7 @@ export default async function handler(req: Request) {
     return new Response(
       JSON.stringify({ ok: false }),
       {
-        status: 200, // Return 200 so analytics tracker does not produce client console errors
+        status: 200,
         headers: {
           'content-type': 'application/json',
           'x-content-type-options': 'nosniff',

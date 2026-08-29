@@ -34,11 +34,11 @@ export default function Navbar() {
           href="https://github.com/kaif-webwork"
           target="_blank"
           rel="noopener noreferrer"
-          className="navbar-star"
+          className="navbar-star-btn"
+          aria-label="GitHub Profile & Open Source"
           onClick={() => playClickSound()}
         >
           <FaStar className="navbar-star-icon" />
-          <span>Open-source</span>
         </a>
       </div>
     </nav>

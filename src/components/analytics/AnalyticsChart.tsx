@@ -1,5 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
+import * as echarts from 'echarts/core';
+import { LineChart } from 'echarts/charts';
+import { GridComponent, TooltipComponent } from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
+import { graphic } from 'echarts/core';
 import type { AnalyticsPeriod, AnalyticsSeriesPoint } from '../../data/analytics';
+
+// Register only needed ECharts modules to drastically reduce bundle size
+echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
 
 interface AnalyticsChartProps {
   period: AnalyticsPeriod;
@@ -8,35 +16,19 @@ interface AnalyticsChartProps {
 
 export default function AnalyticsChart({ period, series }: AnalyticsChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
-  const chartInstance = useRef<any>(null);
-  const [echarts, setEcharts] = useState<any>(null);
+  const chartInstance = useRef<echarts.ECharts | null>(null);
 
   useEffect(() => {
-    import('echarts').then((mod) => setEcharts(mod));
-  }, []);
-
-  useEffect(() => {
-    if (!chartRef.current || !echarts) return;
+    if (!chartRef.current) return;
 
     if (!chartInstance.current || chartInstance.current.isDisposed()) {
-      chartInstance.current = echarts.init(chartRef.current, 'dark');
+      chartInstance.current = echarts.init(chartRef.current, undefined, {
+        renderer: 'canvas',
+      });
     }
 
     const chart = chartInstance.current;
-
-    // Default mock curve matching reference screenshot shape
-    const displaySeries =
-      series && series.length > 0
-        ? series
-        : [
-            { timestamp: Date.now() - 6 * 86400000, pageviews: 80, visitors: 35 },
-            { timestamp: Date.now() - 5 * 86400000, pageviews: 105, visitors: 42 },
-            { timestamp: Date.now() - 4 * 86400000, pageviews: 75, visitors: 36 },
-            { timestamp: Date.now() - 3 * 86400000, pageviews: 130, visitors: 38 },
-            { timestamp: Date.now() - 2 * 86400000, pageviews: 235, visitors: 70 },
-            { timestamp: Date.now() - 1 * 86400000, pageviews: 185, visitors: 48 },
-            { timestamp: Date.now(), pageviews: 10, visitors: 6 },
-          ];
+    const displaySeries = series || [];
 
     const formatDate = (ts: number) => {
       const d = new Date(ts);
@@ -52,6 +44,11 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
         day: 'numeric',
       });
     };
+
+    const maxVal = Math.max(
+      ...displaySeries.map((p) => Math.max(p.pageviews, p.visitors)),
+      5
+    );
 
     chart.setOption({
       backgroundColor: 'transparent',
@@ -76,8 +73,8 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
       yAxis: {
         type: 'value',
         min: 0,
-        max: 300,
-        interval: 100,
+        max: maxVal <= 10 ? 10 : Math.ceil(maxVal * 1.2),
+        minInterval: 1,
         splitLine: { lineStyle: { color: '#1c1d20', type: 'dashed' } },
         axisLine: { show: false },
         axisTick: { show: false },
@@ -110,7 +107,7 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
             type: 'dotted',
           },
           areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            color: new graphic.LinearGradient(0, 0, 0, 1, [
               { offset: 0, color: 'rgba(45, 212, 191, 0.16)' },
               { offset: 1, color: 'rgba(45, 212, 191, 0.0)' },
             ]),
@@ -128,7 +125,7 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
             type: 'dotted',
           },
           areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            color: new graphic.LinearGradient(0, 0, 0, 1, [
               { offset: 0, color: 'rgba(244, 63, 94, 0.18)' },
               { offset: 1, color: 'rgba(244, 63, 94, 0.0)' },
             ]),
@@ -147,7 +144,7 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, [series, period, echarts]);
+  }, [series, period]);
 
   useEffect(() => {
     return () => {

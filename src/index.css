@@ -9,6 +9,8 @@
 
 html {
   scroll-behavior: smooth;
+  touch-action: pan-y pinch-zoom;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -20,6 +22,8 @@ body {
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
   zoom: 1.1;
+  touch-action: pan-y pinch-zoom;
+  -webkit-tap-highlight-color: transparent;
 }
 
 @media (max-width: 600px) {
@@ -31,6 +35,8 @@ body {
 a {
   text-decoration: none;
   color: inherit;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 ul,
@@ -41,14 +47,23 @@ ol {
 img {
   max-width: 100%;
   display: block;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
-button {
+button,
+[role="button"],
+input,
+select,
+textarea {
   cursor: pointer;
   border: none;
   background: none;
   font-family: inherit;
   color: inherit;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 ::selection {
