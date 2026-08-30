@@ -62,8 +62,7 @@ export function calculateAccurateGrowth(
     return { text: '0.0%', status: 'neutral' };
   }
   if (prev === 0 && curr > 0) {
-    const pct = curr * 100.0;
-    return { text: `↑ ${pct.toFixed(1)}%`, status: 'up' };
+    return { text: '↑ 100.0%', status: 'up' };
   }
   if (prev > 0 && curr === 0) {
     return { text: '↓ 100.0%', status: 'down' };
