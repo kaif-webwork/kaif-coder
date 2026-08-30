@@ -5,8 +5,9 @@ const VISITOR_KEY = 'kaif_visitor_id_v2';
 
 interface StoredDayData {
   pageviews: number;
-  visitors: string[]; // unique visitor IDs
-  hourly: Record<string, number>; // "00".."23"
+  visitors: string[]; // unique visitor IDs for the day
+  hourly: Record<string, number>; // pageviews per hour "00".."23"
+  hourlyVisitors?: Record<string, string[]>; // unique visitor IDs per hour "00".."23"
 }
 
 interface StoredAnalyticsData {
@@ -47,10 +48,13 @@ function saveStoredData(data: StoredAnalyticsData) {
 }
 
 function getDateKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
-function calculateAccurateGrowth(
+export function calculateAccurateGrowth(
   curr: number,
   prev: number
 ): { text: string; status: 'up' | 'down' | 'neutral' } {
@@ -58,7 +62,8 @@ function calculateAccurateGrowth(
     return { text: '0.0%', status: 'neutral' };
   }
   if (prev === 0 && curr > 0) {
-    return { text: '↑ 100.0%', status: 'up' };
+    const pct = curr * 100.0;
+    return { text: `↑ ${pct.toFixed(1)}%`, status: 'up' };
   }
   if (prev > 0 && curr === 0) {
     return { text: '↓ 100.0%', status: 'down' };
@@ -74,7 +79,7 @@ function calculateAccurateGrowth(
 }
 
 /**
- * Record a real pageview and unique visitor strictly ONCE per session/day per user
+ * Record a real pageview and unique visitor accurately
  */
 export function recordRealPageView(path: string) {
   try {
@@ -83,31 +88,31 @@ export function recordRealPageView(path: string) {
     const today = getDateKey(now);
     const hour = String(now.getHours()).padStart(2, '0');
 
-    // Deduplication check: only track each user once per path per session
-    const sessionKey = `kaif_tracked_${today}_${path}`;
-    if (typeof sessionStorage !== 'undefined') {
-      if (sessionStorage.getItem(sessionKey)) {
-        return; // Already tracked for this user in this session, skip duplicate
-      }
-      sessionStorage.setItem(sessionKey, '1');
-    }
-
     const data = getStoredData();
     if (!data.daily[today]) {
       data.daily[today] = {
         pageviews: 0,
         visitors: [],
         hourly: {},
+        hourlyVisitors: {},
       };
     }
 
     const day = data.daily[today];
     day.pageviews = (day.pageviews || 0) + 1;
+
+    if (!day.hourly) day.hourly = {};
     day.hourly[hour] = (day.hourly[hour] || 0) + 1;
 
     if (!day.visitors) day.visitors = [];
     if (!day.visitors.includes(visitorId)) {
       day.visitors.push(visitorId);
+    }
+
+    if (!day.hourlyVisitors) day.hourlyVisitors = {};
+    if (!day.hourlyVisitors[hour]) day.hourlyVisitors[hour] = [];
+    if (!day.hourlyVisitors[hour].includes(visitorId)) {
+      day.hourlyVisitors[hour].push(visitorId);
     }
 
     saveStoredData(data);
@@ -145,9 +150,12 @@ export function getRealAnalyticsForPeriod(period: AnalyticsPeriod): AnalyticsDat
 
       const dayData = data.daily[dateKey];
       const pv = dayData?.hourly?.[hourKey] || 0;
-      const uv = pv > 0 ? (dayData?.visitors?.length || 1) : 0;
+      const hourlyUvList = dayData?.hourlyVisitors?.[hourKey] || [];
+      const uv = hourlyUvList.length > 0 ? hourlyUvList.length : (pv > 0 ? 1 : 0);
 
-      if (pv > 0 && dayData?.visitors) {
+      if (hourlyUvList.length > 0) {
+        hourlyUvList.forEach((v) => currVisitors.add(v));
+      } else if (pv > 0 && dayData?.visitors) {
         dayData.visitors.forEach((v) => currVisitors.add(v));
       }
 
@@ -163,9 +171,14 @@ export function getRealAnalyticsForPeriod(period: AnalyticsPeriod): AnalyticsDat
 
       const dayData = data.daily[dateKey];
       const pv = dayData?.hourly?.[hourKey] || 0;
-      if (pv > 0 && dayData?.visitors) {
+      const hourlyUvList = dayData?.hourlyVisitors?.[hourKey] || [];
+
+      if (hourlyUvList.length > 0) {
+        hourlyUvList.forEach((v) => prevVisitors.add(v));
+      } else if (pv > 0 && dayData?.visitors) {
         dayData.visitors.forEach((v) => prevVisitors.add(v));
       }
+
       prevPv += pv;
     }
 
@@ -198,16 +211,18 @@ export function getRealAnalyticsForPeriod(period: AnalyticsPeriod): AnalyticsDat
 
   // Current period (days 0..N-1)
   for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(now.getTime() - i * 86400000);
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
     const dateKey = getDateKey(d);
     const timestamp = d.getTime();
 
     const dayData = data.daily[dateKey];
     const pv = dayData?.pageviews || 0;
-    const uv = dayData?.visitors?.length || 0;
+    const uv = dayData?.visitors?.length || (pv > 0 ? 1 : 0);
 
-    if (dayData?.visitors) {
+    if (dayData?.visitors && dayData.visitors.length > 0) {
       dayData.visitors.forEach((v) => currVisitors.add(v));
+    } else if (pv > 0) {
+      currVisitors.add('v_current');
     }
 
     currPv += pv;
@@ -216,14 +231,16 @@ export function getRealAnalyticsForPeriod(period: AnalyticsPeriod): AnalyticsDat
 
   // Previous period (days N..2N-1) for exact comparison
   for (let i = days * 2 - 1; i >= days; i--) {
-    const d = new Date(now.getTime() - i * 86400000);
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
     const dateKey = getDateKey(d);
 
     const dayData = data.daily[dateKey];
     const pv = dayData?.pageviews || 0;
 
-    if (dayData?.visitors) {
+    if (dayData?.visitors && dayData.visitors.length > 0) {
       dayData.visitors.forEach((v) => prevVisitors.add(v));
+    } else if (pv > 0) {
+      prevVisitors.add('v_prev');
     }
 
     prevPv += pv;

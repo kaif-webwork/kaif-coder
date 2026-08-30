@@ -18,7 +18,7 @@ function getRedis(): Redis | null {
   return null;
 }
 
-// Get date key like "2026-08-29"
+// Get UTC date key like "2026-08-30"
 function getDateKey(date: Date = new Date()): string {
   return date.toISOString().slice(0, 10);
 }
@@ -60,22 +60,23 @@ export default async function handler(req: Request) {
     const ip = forwarded ? forwarded.split(',')[0].trim() : '127.0.0.1';
     const visitorHash = hashIP(ip + today); // salted per day for privacy
 
-    // Strict 1-per-user tracking: check if visitor already visited today
-    const isNewVisitorToday = !(await redis.sismember(`uv:${today}`, visitorHash));
+    const pipeline = redis.pipeline();
+    // 1. Unique visitor sets automatically deduplicate by visitor hash
+    pipeline.sadd(`uv:${today}`, visitorHash);
+    pipeline.sadd(`uvh:${today}:${hour}`, visitorHash);
+    
+    // 2. Pageviews increment on every visit
+    pipeline.hincrby(`pv:${today}`, 'count', 1);
+    pipeline.incr(`pvh:${today}:${hour}`);
+    pipeline.incr('pv:total');
 
-    if (isNewVisitorToday) {
-      const pipeline = redis.pipeline();
-      pipeline.sadd(`uv:${today}`, visitorHash);
-      pipeline.sadd(`uvh:${today}:${hour}`, visitorHash);
-      pipeline.hincrby(`pv:${today}`, 'count', 1);
-      pipeline.incr(`pvh:${today}:${hour}`);
-      pipeline.incr('pv:total');
-      pipeline.expire(`uv:${today}`, 90 * 86400);
-      pipeline.expire(`uvh:${today}:${hour}`, 7 * 86400);
-      pipeline.expire(`pv:${today}`, 90 * 86400);
-      pipeline.expire(`pvh:${today}:${hour}`, 7 * 86400);
-      await pipeline.exec();
-    }
+    // 3. Keep data retention expiry
+    pipeline.expire(`uv:${today}`, 90 * 86400);
+    pipeline.expire(`uvh:${today}:${hour}`, 7 * 86400);
+    pipeline.expire(`pv:${today}`, 90 * 86400);
+    pipeline.expire(`pvh:${today}:${hour}`, 7 * 86400);
+
+    await pipeline.exec();
 
     return new Response(JSON.stringify({ ok: true }), {
       headers: {

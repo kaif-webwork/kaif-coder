@@ -22,6 +22,29 @@ function getDateKey(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
+function calculateGrowth(curr: number, prev: number) {
+  if (curr === 0 && prev === 0) {
+    return { text: '0.0%', status: 'neutral' as const, isUp: true };
+  }
+  if (prev === 0 && curr > 0) {
+    const pct = curr * 100.0;
+    return { text: `↑ ${pct.toFixed(1)}%`, status: 'up' as const, isUp: true };
+  }
+  if (prev > 0 && curr === 0) {
+    return { text: '↓ 100.0%', status: 'down' as const, isUp: false };
+  }
+  const diff = ((curr - prev) / prev) * 100;
+  if (Math.abs(diff) < 0.05) {
+    return { text: '0.0%', status: 'neutral' as const, isUp: true };
+  }
+  const sign = diff > 0 ? '↑' : '↓';
+  return {
+    text: `${sign} ${Math.abs(diff).toFixed(1)}%`,
+    status: diff > 0 ? ('up' as const) : ('down' as const),
+    isUp: diff >= 0,
+  };
+}
+
 export default async function handler(req: Request) {
   const url = new URL(req.url);
   const period = url.searchParams.get('period') || '7d';
@@ -36,34 +59,51 @@ export default async function handler(req: Request) {
         const pipeline = redis.pipeline();
         const timestamps: number[] = [];
 
-        for (let i = points - 1; i >= 0; i--) {
+        // Fetch 48 hours (24h current + 24h previous comparison)
+        for (let i = points * 2 - 1; i >= 0; i--) {
           const d = new Date(now.getTime() - i * 3600000);
           const dateKey = getDateKey(d);
           const hourKey = String(d.getUTCHours()).padStart(2, '0');
-          timestamps.push(d.getTime());
+          if (i < points) {
+            timestamps.push(d.getTime());
+          }
           pipeline.get(`pvh:${dateKey}:${hourKey}`);
           pipeline.scard(`uvh:${dateKey}:${hourKey}`);
         }
 
         const results = await pipeline.exec();
+
+        let prevPv = 0;
+        let prevUv = 0;
+        for (let i = 0; i < points; i++) {
+          prevPv += Number(results[i * 2]) || 0;
+          prevUv += Number(results[i * 2 + 1]) || 0;
+        }
+
         const series = timestamps.map((timestamp, i) => {
-          const pv = Number(results[i * 2]) || 0;
-          const uv = Number(results[i * 2 + 1]) || 0;
+          const idx = (points + i) * 2;
+          const pv = Number(results[idx]) || 0;
+          const uv = Number(results[idx + 1]) || 0;
           return { timestamp, pageviews: pv, visitors: uv };
         });
 
-        const totalPageviews = series.reduce((sum, p) => sum + p.pageviews, 0);
-        const totalVisitors = series.reduce((sum, p) => sum + p.visitors, 0);
+        const currPv = series.reduce((sum, p) => sum + p.pageviews, 0);
+        const currUv = series.reduce((sum, p) => sum + p.visitors, 0);
+
+        const uvGrowth = calculateGrowth(currUv, prevUv);
+        const pvGrowth = calculateGrowth(currPv, prevPv);
 
         return new Response(
           JSON.stringify({
-            pageviews: totalPageviews,
-            visitors: totalVisitors,
+            pageviews: currPv,
+            visitors: currUv,
             series,
-            growthVisitors: totalVisitors > 0 ? '↑ 100%' : '0%',
-            growthPageviews: totalPageviews > 0 ? '↑ 100%' : '0%',
-            isVisitorsUp: true,
-            isPageviewsUp: true,
+            growthVisitors: uvGrowth.text,
+            growthPageviews: pvGrowth.text,
+            growthVisitorsStatus: uvGrowth.status,
+            growthPageviewsStatus: pvGrowth.status,
+            isVisitorsUp: uvGrowth.isUp,
+            isPageviewsUp: pvGrowth.isUp,
           }),
           {
             headers: {
@@ -89,7 +129,7 @@ export default async function handler(req: Request) {
         }
 
         const results = await pipeline.exec();
-        
+
         let prevPv = 0;
         let prevUv = 0;
         for (let i = 0; i < days; i++) {
@@ -107,18 +147,20 @@ export default async function handler(req: Request) {
         const currPv = series.reduce((sum, p) => sum + p.pageviews, 0);
         const currUv = series.reduce((sum, p) => sum + p.visitors, 0);
 
-        const pvDiff = prevPv > 0 ? ((currPv - prevPv) / prevPv) * 100 : (currPv > 0 ? 100 : 0);
-        const uvDiff = prevUv > 0 ? ((currUv - prevUv) / prevUv) * 100 : (currUv > 0 ? 100 : 0);
+        const uvGrowth = calculateGrowth(currUv, prevUv);
+        const pvGrowth = calculateGrowth(currPv, prevPv);
 
         return new Response(
           JSON.stringify({
             pageviews: currPv,
             visitors: currUv,
             series,
-            growthVisitors: `${uvDiff >= 0 ? '↑' : '↓'} ${Math.abs(uvDiff).toFixed(1)}%`,
-            growthPageviews: `${pvDiff >= 0 ? '↑' : '↓'} ${Math.abs(pvDiff).toFixed(1)}%`,
-            isVisitorsUp: uvDiff >= 0,
-            isPageviewsUp: pvDiff >= 0,
+            growthVisitors: uvGrowth.text,
+            growthPageviews: pvGrowth.text,
+            growthVisitorsStatus: uvGrowth.status,
+            growthPageviewsStatus: pvGrowth.status,
+            isVisitorsUp: uvGrowth.isUp,
+            isPageviewsUp: pvGrowth.isUp,
           }),
           {
             headers: {
@@ -129,11 +171,11 @@ export default async function handler(req: Request) {
         );
       }
     } catch {
-      // Fall through to 0-based fallback if Redis query fails
+      // Fall through to fallback if Redis query fails
     }
   }
 
-  // Pure 0-based initial real series when backend is clean
+  // Pure 0-based initial fallback series when backend is empty
   const points = period === '24h' ? 24 : period === '7d' ? 7 : 30;
   const interval = period === '24h' ? 3600000 : 86400000;
   const baseTimestamp = Math.floor(now.getTime() / interval) * interval;
@@ -149,8 +191,10 @@ export default async function handler(req: Request) {
       pageviews: 0,
       visitors: 0,
       series,
-      growthVisitors: '0%',
-      growthPageviews: '0%',
+      growthVisitors: '0.0%',
+      growthPageviews: '0.0%',
+      growthVisitorsStatus: 'neutral',
+      growthPageviewsStatus: 'neutral',
       isVisitorsUp: true,
       isPageviewsUp: true,
     }),

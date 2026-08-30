@@ -81,18 +81,19 @@
 /* Mobile View - Perfectly Centered Layout */
 @media (max-width: 580px) {
   .navbar-container {
-    padding: 12px 14px;
-    gap: 12px;
+    padding: 10px 10px;
+    gap: 8px;
     justify-content: center;
   }
 
   .navbar-links {
     justify-content: center;
-    gap: 14px;
+    gap: 10px;
   }
 
   .navbar-link {
-    font-size: 0.82rem;
+    font-size: 0.78rem;
+    padding: 4px 2px;
   }
 
   .navbar-star-btn {
@@ -107,30 +108,31 @@
   }
 }
 
-@media (max-width: 390px) {
+@media (max-width: 410px) {
   .navbar-container {
-    padding: 10px 8px;
-    gap: 8px;
+    padding: 8px 6px;
+    gap: 6px;
     justify-content: center;
   }
 
   .navbar-links {
     justify-content: center;
-    gap: 10px;
+    gap: 7px;
   }
 
   .navbar-link {
-    font-size: 0.77rem;
+    font-size: 0.72rem;
+    padding: 3px 1px;
   }
 
   .navbar-star-btn {
-    width: 26px;
-    height: 26px;
-    min-width: 26px;
-    min-height: 26px;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
   }
 
   .navbar-star-icon {
-    font-size: 0.74rem;
+    font-size: 0.7rem;
   }
 }
