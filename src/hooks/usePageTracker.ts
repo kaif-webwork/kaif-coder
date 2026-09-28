@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router';
-import { recordRealPageView } from '../utils/realAnalyticsTracker';
+import { recordRealPageView, getVisitorId } from '../utils/realAnalyticsTracker';
 
 /**
  * Tracks page visits silently to /api/track on route change
- * Also maintains real counts in localStorage starting from actual visits
+ * Sends visitorId so multi-device visitors are uniquely identified
  */
 export function usePageTracker() {
   const location = useLocation();
@@ -15,21 +15,29 @@ export function usePageTracker() {
     if (lastTrackedPath.current === currentPath) return;
     lastTrackedPath.current = currentPath;
 
-    // 1. Client-side real visit recording (0-based actual visits)
+    // 1. Client-side local visit recording
     recordRealPageView(currentPath);
 
-    // 2. Silent backend beacon to /api/track for serverless production
+    // 2. Silent backend beacon to /api/track for multi-device sync
     try {
+      const visitorId = getVisitorId();
+      const payloadString = JSON.stringify({
+        path: currentPath,
+        ref: typeof document !== 'undefined' ? document.referrer : '',
+        visitorId,
+        timestamp: Date.now(),
+      });
+
       if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
-        const payload = new Blob([JSON.stringify({ path: currentPath, ref: document.referrer })], {
+        const payload = new Blob([payloadString], {
           type: 'application/json',
         });
         navigator.sendBeacon('/api/track', payload);
-      } else {
+      } else if (typeof fetch !== 'undefined') {
         void fetch('/api/track', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ path: currentPath, ref: document.referrer }),
+          body: payloadString,
           keepalive: true,
         }).catch(() => {});
       }

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import type { ReactNode, MouseEvent } from 'react';
 
 interface ClickSparkProps {
@@ -33,6 +33,14 @@ export default function ClickSpark({
   const sparksRef = useRef<Spark[]>([]);
   const animFrameRef = useRef<number>(0);
   const animateRef = useRef<() => void>(() => {});
+  const [isTouch] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return (
+      'ontouchstart' in window ||
+      navigator.maxTouchPoints > 0 ||
+      window.matchMedia('(pointer: coarse)').matches
+    );
+  });
 
   const ease = useCallback(
     (t: number) => {
@@ -54,9 +62,15 @@ export default function ClickSpark({
 
   const animate = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      animFrameRef.current = 0;
+      return;
+    }
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      animFrameRef.current = 0;
+      return;
+    }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const now = Date.now();
@@ -75,7 +89,7 @@ export default function ClickSpark({
       const alpha = 1 - progress;
 
       ctx.save();
-      ctx.globalAlpha = alpha;
+      ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
       ctx.translate(x, y);
       ctx.rotate(spark.angle);
 
@@ -98,6 +112,10 @@ export default function ClickSpark({
       animFrameRef.current = requestAnimationFrame(() => {
         animateRef.current();
       });
+    } else {
+      // Cleanly reset frame ref so next click starts immediately
+      animFrameRef.current = 0;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
   }, [duration, ease, extraScale, sparkColor, sparkRadius, sparkSize]);
 
@@ -107,12 +125,14 @@ export default function ClickSpark({
 
   const handleClick = useCallback(
     (e: MouseEvent) => {
+      if (isTouch) return; // Ignore on touch screens
+
       const canvas = canvasRef.current;
       if (!canvas) return;
 
       const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const x = (e.clientX || 0) - rect.left;
+      const y = (e.clientY || 0) - rect.top;
       const now = Date.now();
 
       const newSparks: Spark[] = Array.from({ length: sparkCount }, (_, i) => ({
@@ -122,36 +142,64 @@ export default function ClickSpark({
         startTime: now,
       }));
 
-      sparksRef.current.push(...newSparks);
+      // Keep max 40 sparks at once to prevent any memory or CPU spike
+      sparksRef.current = [...sparksRef.current.slice(-32), ...newSparks];
 
-      if (animFrameRef.current === 0 || sparksRef.current.length === sparkCount) {
+      if (animFrameRef.current === 0) {
         animFrameRef.current = requestAnimationFrame(() => {
           animateRef.current();
         });
       }
     },
-    [sparkCount]
+    [isTouch, sparkCount]
   );
 
   useEffect(() => {
+    if (isTouch) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    let resizeTimer: number;
     const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      if (!canvasRef.current) return;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      if (canvasRef.current.width !== w || canvasRef.current.height !== h) {
+        canvasRef.current.width = w;
+        canvasRef.current.height = h;
+      }
+    };
+
+    const debouncedResize = () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(resize, 120);
     };
 
     resize();
-    window.addEventListener('resize', resize);
+    window.addEventListener('resize', debouncedResize);
+
     return () => {
-      window.removeEventListener('resize', resize);
-      cancelAnimationFrame(animFrameRef.current);
+      window.removeEventListener('resize', debouncedResize);
+      window.clearTimeout(resizeTimer);
+      if (animFrameRef.current) {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = 0;
+      }
     };
-  }, []);
+  }, [isTouch]);
+
+  // If touch / mobile device, render clean children without any canvas overhead
+  if (isTouch) {
+    return <div className="click-spark-container">{children}</div>;
+  }
 
   return (
-    <div style={{ position: 'relative' }} onClick={handleClick}>
+    <div
+      className="click-spark-container"
+      style={{ position: 'relative' }}
+      onClick={handleClick}
+    >
       <canvas
         ref={canvasRef}
         style={{

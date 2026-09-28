@@ -29,7 +29,7 @@ export default function Calendar() {
 
     const handleDismiss = () => setTooltip(null);
     window.addEventListener('click', handleDismiss);
-    window.addEventListener('touchstart', handleDismiss);
+    window.addEventListener('touchstart', handleDismiss, { passive: true });
 
     return () => {
       clearTimeout(timer);

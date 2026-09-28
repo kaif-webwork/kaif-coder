@@ -4,6 +4,8 @@ let audioCtx: AudioContext | null = null;
 
 function getAudioContext(): AudioContext | null {
   try {
+    if (typeof window === 'undefined') return null;
+
     if (!audioCtx) {
       const AudioContextClass =
         window.AudioContext ||
@@ -13,7 +15,7 @@ function getAudioContext(): AudioContext | null {
       }
     }
     if (audioCtx && audioCtx.state === 'suspended') {
-      audioCtx.resume();
+      audioCtx.resume().catch(() => {});
     }
     return audioCtx;
   } catch {
@@ -43,7 +45,7 @@ export function playClickSound() {
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.035);
   } catch {
-    // Audio playback error handling
+    // Audio playback error handling safely suppressed
   }
 }
 
@@ -72,6 +74,6 @@ export function playQrToggleSound(isOpening: boolean) {
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.045);
   } catch {
-    // Audio playback error handling
+    // Audio playback error handling safely suppressed
   }
 }
