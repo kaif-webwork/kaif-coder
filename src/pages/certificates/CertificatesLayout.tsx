@@ -1,6 +1,7 @@
 import { useSEO } from '../../hooks/useSEO';
 import CertificatesSection from '../../components/certificates/CertificatesSection';
 import Footer from '../../components/footer/Footer';
+import './CertificatesLayout.css';
 
 export default function CertificatesLayout() {
   useSEO({

@@ -161,8 +161,8 @@ export default function CertificatesSection() {
                 >
                   {copiedId === cert.credentialId ? (
                     <>
-                      <HiOutlineClipboardDocumentCheck />
-                      <span>Copied</span>
+                      <span className="spec-mono">Copied to Clipboard</span>
+                      <HiOutlineClipboardDocumentCheck className="copy-icon" />
                     </>
                   ) : (
                     <>
@@ -275,16 +275,24 @@ export default function CertificatesSection() {
             className="cert-lightbox-content"
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              type="button"
-              className="cert-lightbox-close-btn"
-              onClick={handleCloseLightbox}
-              aria-label="Close Preview"
-              title="Close (Esc)"
-            >
-              <HiOutlineXMark />
-            </button>
+            {/* Dedicated Top Header Bar - Never Overlaps Certificate Image */}
+            <div className="cert-lightbox-header">
+              <div className="cert-lightbox-header-title">
+                <RiVerifiedBadgeFill className="lightbox-verified-icon" />
+                <span className="lightbox-header-text">{previewImage.title}</span>
+              </div>
+              <button
+                type="button"
+                className="cert-lightbox-close-btn"
+                onClick={handleCloseLightbox}
+                aria-label="Close"
+                title="Close"
+              >
+                <HiOutlineXMark />
+              </button>
+            </div>
 
+            {/* Certificate Image - 100% Unobstructed Full View */}
             <div className="cert-lightbox-img-wrapper">
               <img
                 src={previewImage.src}
@@ -293,6 +301,7 @@ export default function CertificatesSection() {
               />
             </div>
 
+            {/* Bottom Footer - Clean 'Close' Button Without 'Esc' */}
             <div className="cert-lightbox-footer">
               <span className="cert-lightbox-caption">{previewImage.title}</span>
               <button
@@ -300,7 +309,7 @@ export default function CertificatesSection() {
                 className="cert-lightbox-dismiss-btn"
                 onClick={handleCloseLightbox}
               >
-                Close (Esc)
+                Close
               </button>
             </div>
           </div>
