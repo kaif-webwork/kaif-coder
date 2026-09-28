@@ -30,6 +30,7 @@ const ProjectsLayout = safeLazy(() => import('./pages/ProjectsLayout'));
 const BlogLayout = safeLazy(() => import('./pages/blogs/BlogLayout'));
 const HowToPlanAProject = safeLazy(() => import('./pages/blogs/HowToPlanAProject'));
 const ResumeLayout = safeLazy(() => import('./pages/resume/ResumeLayout'));
+const CertificatesLayout = safeLazy(() => import('./pages/certificates/CertificatesLayout'));
 const AnalyticsLayout = safeLazy(() => import('./pages/analytics/AnalyticsLayout'));
 const UsesLayout = safeLazy(() => import('./pages/uses/UsesLayout'));
 const SupportLayout = safeLazy(() => import('./pages/support/SupportLayout'));
@@ -60,6 +61,7 @@ export default function App() {
                 <Route path="/blogs/how-to-plan-a-project" element={<HowToPlanAProject />} />
                 <Route path="/uses" element={<UsesLayout />} />
                 <Route path="/resume" element={<ResumeLayout />} />
+                <Route path="/certificates" element={<CertificatesLayout />} />
                 <Route path="/analytics" element={<AnalyticsLayout />} />
                 <Route path="/support" element={<SupportLayout />} />
                 <Route path="*" element={<PageNotFound />} />

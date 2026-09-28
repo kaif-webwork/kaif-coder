@@ -26,8 +26,8 @@ export default function AnalyticsDashboard() {
           <div className="analytics-stat-value">
             {loading && !data ? '...' : visitorsCount.toLocaleString()}
           </div>
-          <div className={`analytics-stat-indicator ${visitorsStatus}`}>
-            {visitorsGrowth}
+          <div className={`analytics-stat-indicator ${loading && !data ? 'neutral' : visitorsStatus}`}>
+            {loading && !data ? '—' : visitorsGrowth}
           </div>
         </div>
 
@@ -36,8 +36,8 @@ export default function AnalyticsDashboard() {
           <div className="analytics-stat-value">
             {loading && !data ? '...' : pageviewsCount.toLocaleString()}
           </div>
-          <div className={`analytics-stat-indicator ${pageviewsStatus}`}>
-            {pageviewsGrowth}
+          <div className={`analytics-stat-indicator ${loading && !data ? 'neutral' : pageviewsStatus}`}>
+            {loading && !data ? '—' : pageviewsGrowth}
           </div>
         </div>
       </div>
@@ -52,20 +52,29 @@ export default function AnalyticsDashboard() {
 
           <div className="analytics-period-buttons">
             <button
+              type="button"
               className={`analytics-period-tab ${period === '24h' ? 'active' : ''}`}
               onClick={() => setPeriod('24h')}
+              aria-label="View 24-hour analytics"
+              aria-pressed={period === '24h'}
             >
               24H
             </button>
             <button
+              type="button"
               className={`analytics-period-tab ${period === '7d' ? 'active' : ''}`}
               onClick={() => setPeriod('7d')}
+              aria-label="View 7-day analytics"
+              aria-pressed={period === '7d'}
             >
               7D
             </button>
             <button
+              type="button"
               className={`analytics-period-tab ${period === '30d' ? 'active' : ''}`}
               onClick={() => setPeriod('30d')}
+              aria-label="View 30-day analytics"
+              aria-pressed={period === '30d'}
             >
               30D
             </button>

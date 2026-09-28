@@ -1,0 +1,49 @@
+.certificates-page-wrapper {
+  min-height: 100vh;
+  background: #0b0d0e;
+  padding: 40px 18px 20px;
+}
+
+.certificates-page {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.certificates-page-subtitle {
+  font-family: 'Figtree', sans-serif;
+  font-style: italic;
+  font-size: 0.92rem;
+  color: #a3a3a3;
+  text-align: center;
+  margin: 8px 0 24px 0;
+}
+
+/* Back Navigation Button */
+.certificates-nav-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+  margin-bottom: 28px;
+}
+
+.certificates-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #9ca3af;
+  text-decoration: none;
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.86rem;
+  padding: 8px 18px;
+  border-radius: 20px;
+  border: 1px solid #22242a;
+  background: #121316;
+  transition: all 0.2s ease;
+}
+
+.certificates-nav-btn:hover {
+  color: #ffffff;
+  border-color: #3b3e48;
+  background: #181a1f;
+  transform: translateX(-2px);
+}

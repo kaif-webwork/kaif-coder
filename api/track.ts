@@ -7,25 +7,44 @@ export const config = {
 const KV_APP_KEY = 'r405x717';
 const KV_BASE_URL = 'https://keyvalue.immanuel.co/api/KeyVal';
 
+interface CacheEntry {
+  val: string | null;
+  exp: number;
+}
+const kvTrackCache = new Map<string, CacheEntry>();
+
 async function getVal(key: string): Promise<string | null> {
+  const now = Date.now();
+  const cached = kvTrackCache.get(key);
+  if (cached && cached.exp > now) {
+    return cached.val;
+  }
   try {
     const res = await fetch(`${KV_BASE_URL}/GetValue/${KV_APP_KEY}/${key}`, {
       headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(2500),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      kvTrackCache.set(key, { val: null, exp: now + 5000 });
+      return null;
+    }
     const json = await res.json();
-    if (json == null || json === '') return null;
-    return String(json);
+    const val = json == null || json === '' ? null : String(json);
+    kvTrackCache.set(key, { val, exp: now + 30000 });
+    return val;
   } catch {
+    kvTrackCache.set(key, { val: null, exp: now + 5000 });
     return null;
   }
 }
 
 async function setVal(key: string, val: string | number): Promise<boolean> {
+  const strVal = String(val);
+  kvTrackCache.set(key, { val: strVal, exp: Date.now() + 30000 });
   try {
     const res = await fetch(
-      `${KV_BASE_URL}/UpdateValue/${KV_APP_KEY}/${key}/${encodeURIComponent(String(val))}`,
-      { method: 'POST' }
+      `${KV_BASE_URL}/UpdateValue/${KV_APP_KEY}/${key}/${encodeURIComponent(strVal)}`,
+      { method: 'POST', signal: AbortSignal.timeout(2500) }
     );
     return res.ok;
   } catch {

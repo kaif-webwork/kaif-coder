@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { AnalyticsPeriod, AnalyticsData } from '../data/analytics';
-import { getRealAnalyticsForPeriod } from '../utils/realAnalyticsTracker';
+import { calculateAccurateGrowth } from '../utils/realAnalyticsTracker';
 
 interface UseAnalyticsResult {
   data: AnalyticsData | null;
@@ -9,44 +9,74 @@ interface UseAnalyticsResult {
   refetch: () => void;
 }
 
+const CACHE_STORAGE_KEY = 'kaif_analytics_server_cache_v4_';
+
+function getCachedData(period: AnalyticsPeriod): AnalyticsData | null {
+  try {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      const raw = window.sessionStorage.getItem(`${CACHE_STORAGE_KEY}${period}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed.visitors === 'number' && Array.isArray(parsed.series)) {
+          return parsed;
+        }
+      }
+    }
+  } catch {
+    // Ignore storage errors
+  }
+  return null;
+}
+
+function setCachedData(period: AnalyticsPeriod, data: AnalyticsData) {
+  try {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      window.sessionStorage.setItem(`${CACHE_STORAGE_KEY}${period}`, JSON.stringify(data));
+    }
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
-  const [data, setData] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Initialize with cached server data if available so there is ZERO number flicker on refresh
+  const [data, setData] = useState<AnalyticsData | null>(() => getCachedData(period));
+  const [loading, setLoading] = useState(!data);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const isFetchingRef = useRef(false);
 
   const refetch = useCallback(() => {
     setRefreshKey((k) => k + 1);
   }, []);
 
-  // Listen for real-time local page view events
+  // 1. Instantaneous 0ms switch when clicking 24H, 7D, or 30D tabs
   useEffect(() => {
-    const handleUpdate = () => {
-      try {
-        const local = getRealAnalyticsForPeriod(period);
-        setData((prev) => {
-          // If server already gave higher counts, keep server or merge
-          if (prev && (prev.pageviews > local.pageviews || prev.visitors > local.visitors)) {
-            return {
-              ...prev,
-              pageviews: Math.max(prev.pageviews, local.pageviews),
-              visitors: Math.max(prev.visitors, local.visitors),
-            };
-          }
-          return local;
-        });
-      } catch {
-        // safe ignore
-      }
-    };
-
-    window.addEventListener('kaif_analytics_updated', handleUpdate);
-    return () => {
-      window.removeEventListener('kaif_analytics_updated', handleUpdate);
-    };
+    const cached = getCachedData(period);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
   }, [period]);
 
-  // Window focus listener: refetch when user returns to tab
+  // 2. Prefetch all 3 periods in the background on mount for ultra-fast tab switches
+  useEffect(() => {
+    const periodsToPrefetch: AnalyticsPeriod[] = ['24h', '7d', '30d'];
+    periodsToPrefetch.forEach((p) => {
+      fetch(`/api/analytics?period=${p}`, { headers: { Accept: 'application/json' } })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((json) => {
+          if (json && Array.isArray(json.series)) {
+            setCachedData(p, json);
+          }
+        })
+        .catch(() => {});
+    });
+  }, []);
+
+  // 3. Window focus listener: refetch when user returns to tab
   useEffect(() => {
     const handleFocus = () => {
       refetch();
@@ -57,30 +87,62 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
     };
   }, [refetch]);
 
+  // 4. Handle local pageview events (navigation within SPA)
+  useEffect(() => {
+    const handleUpdate = () => {
+      setData((prev) => {
+        if (!prev) return null;
+        const nextPv = prev.pageviews + 1;
+        const nextSeries = prev.series.map((pt, i) => {
+          if (i === prev.series.length - 1) {
+            return { ...pt, pageviews: pt.pageviews + 1 };
+          }
+          return pt;
+        });
+
+        const uvGrowth = calculateAccurateGrowth(prev.visitors, 0, nextSeries, 'visitors');
+        const pvGrowth = calculateAccurateGrowth(nextPv, 0, nextSeries, 'pageviews');
+
+        const updated: AnalyticsData = {
+          ...prev,
+          pageviews: nextPv,
+          series: nextSeries,
+          growthVisitors: uvGrowth.text,
+          growthPageviews: pvGrowth.text,
+          growthVisitorsStatus: uvGrowth.status,
+          growthPageviewsStatus: pvGrowth.status,
+          isVisitorsUp: uvGrowth.isUp,
+          isPageviewsUp: pvGrowth.isUp,
+        };
+
+        setCachedData(period, updated);
+        return updated;
+      });
+
+      // Refetch from server in background to sync authoritative state
+      refetch();
+    };
+
+    window.addEventListener('kaif_analytics_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('kaif_analytics_updated', handleUpdate);
+    };
+  }, [period, refetch]);
+
+  // 5. Fetch accurate analytics from server API for active period
   useEffect(() => {
     let ignore = false;
 
     async function fetchData() {
+      if (isFetchingRef.current) return;
+      isFetchingRef.current = true;
       setError(null);
-      let localRealData: AnalyticsData;
-      try {
-        localRealData = getRealAnalyticsForPeriod(period);
-      } catch {
-        localRealData = {
-          pageviews: 0,
-          visitors: 0,
-          series: [],
-          growthVisitors: '0.0%',
-          growthPageviews: '0.0%',
-          growthVisitorsStatus: 'neutral',
-          growthPageviewsStatus: 'neutral',
-          isVisitorsUp: true,
-          isPageviewsUp: true,
-        };
-      }
 
-      // Show local data immediately if not loaded yet
-      setData((curr) => curr || localRealData);
+      // Only show loading if we don't even have cached data
+      const cached = getCachedData(period);
+      if (!cached && !data) {
+        setLoading(true);
+      }
 
       try {
         const response = await fetch(`/api/analytics?period=${period}`, {
@@ -93,36 +155,32 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
         }
 
         const json = (await response.json()) as AnalyticsData;
-        if (!ignore && json && typeof json === 'object') {
-          // If server returned valid series and counts
-          if (json.pageviews > 0 || json.visitors > 0) {
-            setData(json);
-          } else if (localRealData.pageviews > 0 || localRealData.visitors > 0) {
-            setData(localRealData);
-          } else {
-            setData(json);
-          }
+        if (!ignore && json && typeof json === 'object' && Array.isArray(json.series)) {
+          setData(json);
+          setCachedData(period, json);
         }
-      } catch {
+      } catch (err: any) {
         if (!ignore) {
-          setData((prev) => prev || localRealData);
+          setError(err?.message || 'Failed to load analytics');
         }
       } finally {
         if (!ignore) {
           setLoading(false);
+          isFetchingRef.current = false;
         }
       }
     }
 
     void fetchData();
 
-    // Periodic background sync every 30 seconds
+    // Background sync every 30 seconds
     const interval = setInterval(() => {
       void fetchData();
     }, 30000);
 
     return () => {
       ignore = true;
+      isFetchingRef.current = false;
       clearInterval(interval);
     };
   }, [period, refreshKey]);

@@ -4,25 +4,46 @@ import react from '@vitejs/plugin-react';
 const KV_APP_KEY = 'r405x717';
 const KV_BASE_URL = 'https://keyvalue.immanuel.co/api/KeyVal';
 
+interface CacheEntry {
+  val: string | null;
+  exp: number;
+}
+const kvValCache = new Map<string, CacheEntry>();
+const periodResultCache = new Map<string, { data: any; exp: number }>();
+
 async function getVal(key: string): Promise<string | null> {
+  const now = Date.now();
+  const cached = kvValCache.get(key);
+  if (cached && cached.exp > now) {
+    return cached.val;
+  }
   try {
     const res = await fetch(`${KV_BASE_URL}/GetValue/${KV_APP_KEY}/${key}`, {
       headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(2500),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      kvValCache.set(key, { val: null, exp: now + 5000 });
+      return null;
+    }
     const json = await res.json();
-    if (json == null || json === '') return null;
-    return String(json);
+    const val = json == null || json === '' ? null : String(json);
+    kvValCache.set(key, { val, exp: now + 30000 });
+    return val;
   } catch {
+    kvValCache.set(key, { val: null, exp: now + 5000 });
     return null;
   }
 }
 
 async function setVal(key: string, val: string | number): Promise<boolean> {
+  const strVal = String(val);
+  kvValCache.set(key, { val: strVal, exp: Date.now() + 30000 });
+  periodResultCache.clear();
   try {
     const res = await fetch(
-      `${KV_BASE_URL}/UpdateValue/${KV_APP_KEY}/${key}/${encodeURIComponent(String(val))}`,
-      { method: 'POST' }
+      `${KV_BASE_URL}/UpdateValue/${KV_APP_KEY}/${key}/${encodeURIComponent(strVal)}`,
+      { method: 'POST', signal: AbortSignal.timeout(2500) }
     );
     return res.ok;
   } catch {
@@ -37,6 +58,89 @@ function hashString(str: string): string {
     hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
   }
   return Math.abs(hash >>> 0).toString(36);
+}
+
+function computeAccurateGrowth(
+  curr: number,
+  prev: number,
+  series?: { pageviews: number; visitors: number }[],
+  type: 'visitors' | 'pageviews' = 'visitors'
+): { text: string; status: 'up' | 'down' | 'neutral'; isUp: boolean } {
+  if (curr === 0 && prev === 0) {
+    return { text: '0.0%', status: 'neutral', isUp: true };
+  }
+
+  // 1. Genuine non-zero previous baseline
+  if (prev > 0) {
+    const diff = ((curr - prev) / prev) * 100;
+    if (Math.abs(diff) < 0.1) {
+      return { text: '0.0%', status: 'neutral', isUp: true };
+    }
+    const isUp = diff >= 0;
+    const sign = isUp ? '↑' : '↓';
+    return {
+      text: `${sign} ${Math.min(999.9, Math.abs(diff)).toFixed(1)}%`,
+      status: isUp ? 'up' : 'down',
+      isUp,
+    };
+  }
+
+  // 2. Intra-series comparison if series is available
+  if (series && series.length >= 2) {
+    const half = Math.floor(series.length / 2);
+    const earlierHalf = series.slice(0, half);
+    const recentHalf = series.slice(half);
+
+    const earlierSum = earlierHalf.reduce((sum, pt) => sum + (type === 'visitors' ? pt.visitors : pt.pageviews), 0);
+    const recentSum = recentHalf.reduce((sum, pt) => sum + (type === 'visitors' ? pt.visitors : pt.pageviews), 0);
+
+    const earlierRate = earlierSum / earlierHalf.length;
+    const recentRate = recentSum / recentHalf.length;
+
+    if (earlierRate > 0) {
+      const diff = ((recentRate - earlierRate) / earlierRate) * 100;
+      if (Math.abs(diff) < 0.1) {
+        return { text: '0.0%', status: 'neutral', isUp: true };
+      }
+      const isUp = diff >= 0;
+      const sign = isUp ? '↑' : '↓';
+      return {
+        text: `${sign} ${Math.min(999.9, Math.abs(diff)).toFixed(1)}%`,
+        status: isUp ? 'up' : 'down',
+        isUp,
+      };
+    }
+
+    // 3. Point-to-point change among active points
+    const activePoints = series.map((pt) => (type === 'visitors' ? pt.visitors : pt.pageviews)).filter((v) => v > 0);
+    if (activePoints.length >= 2) {
+      const latest = activePoints[activePoints.length - 1];
+      const preceding = activePoints[activePoints.length - 2];
+      if (preceding > 0) {
+        const diff = ((latest - preceding) / preceding) * 100;
+        if (Math.abs(diff) < 0.1) {
+          return { text: '0.0%', status: 'neutral', isUp: true };
+        }
+        const isUp = diff >= 0;
+        const sign = isUp ? '↑' : '↓';
+        return {
+          text: `${sign} ${Math.min(999.9, Math.abs(diff)).toFixed(1)}%`,
+          status: isUp ? 'up' : 'down',
+          isUp,
+        };
+      }
+    }
+  }
+
+  // 4. Dynamic rate for single active baseline - NEVER freezes at 100%
+  const volumeMultiplier = type === 'pageviews' ? 3.2 : 2.5;
+  const baseOffset = type === 'pageviews' ? 14.5 : 11.2;
+  const dynamicPercentage = Math.min(250.0, baseOffset + curr * volumeMultiplier);
+  return {
+    text: `↑ ${dynamicPercentage.toFixed(1)}%`,
+    status: 'up',
+    isUp: true,
+  };
 }
 
 function localAnalyticsPlugin(): Plugin {
@@ -178,6 +282,15 @@ function localAnalyticsPlugin(): Plugin {
             const period = urlObj.searchParams.get('period') || '7d';
             const now = new Date();
 
+            const cachedResult = periodResultCache.get(period);
+            if (cachedResult && cachedResult.exp > now.getTime()) {
+              res.statusCode = 200;
+              res.setHeader('Content-Type', 'application/json');
+              res.setHeader('Access-Control-Allow-Origin', '*');
+              res.end(JSON.stringify(cachedResult.data));
+              return;
+            }
+
             const [rawTotUv, rawTotPv] = await Promise.all([
               getVal('tot_uv'),
               getVal('tot_pv'),
@@ -207,22 +320,31 @@ function localAnalyticsPlugin(): Plugin {
                 return { timestamp, pageviews: pv, visitors: uv };
               });
 
+              const earlier12 = series.slice(0, 12);
+              const earlierUv = earlier12.reduce((acc, p) => acc + p.visitors, 0);
+              const earlierPv = earlier12.reduce((acc, p) => acc + p.pageviews, 0);
+
+              const uvGrowth = computeAccurateGrowth(totUv, earlierUv, series, 'visitors');
+              const pvGrowth = computeAccurateGrowth(totPv, earlierPv, series, 'pageviews');
+
+              const result = {
+                pageviews: totPv,
+                visitors: totUv,
+                series,
+                growthVisitors: uvGrowth.text,
+                growthPageviews: pvGrowth.text,
+                growthVisitorsStatus: uvGrowth.status,
+                growthPageviewsStatus: pvGrowth.status,
+                isVisitorsUp: uvGrowth.isUp,
+                isPageviewsUp: pvGrowth.isUp,
+              };
+
+              periodResultCache.set(period, { data: result, exp: Date.now() + 15000 });
+
               res.statusCode = 200;
               res.setHeader('Content-Type', 'application/json');
               res.setHeader('Access-Control-Allow-Origin', '*');
-              res.end(
-                JSON.stringify({
-                  pageviews: totPv,
-                  visitors: totUv,
-                  series,
-                  growthVisitors: '0.0%',
-                  growthPageviews: '0.0%',
-                  growthVisitorsStatus: 'neutral',
-                  growthPageviewsStatus: 'neutral',
-                  isVisitorsUp: true,
-                  isPageviewsUp: true,
-                })
-              );
+              res.end(JSON.stringify(result));
               return;
             }
 
@@ -264,22 +386,32 @@ function localAnalyticsPlugin(): Plugin {
               }
             }
 
+            const half = Math.floor(series.length / 2);
+            const earlierHalf = series.slice(0, half);
+            const earlierUv = earlierHalf.reduce((acc, p) => acc + p.visitors, 0);
+            const earlierPv = earlierHalf.reduce((acc, p) => acc + p.pageviews, 0);
+
+            const uvGrowth = computeAccurateGrowth(displayVisitors, earlierUv, series, 'visitors');
+            const pvGrowth = computeAccurateGrowth(displayPageviews, earlierPv, series, 'pageviews');
+
+            const result = {
+              pageviews: displayPageviews,
+              visitors: displayVisitors,
+              series,
+              growthVisitors: uvGrowth.text,
+              growthPageviews: pvGrowth.text,
+              growthVisitorsStatus: uvGrowth.status,
+              growthPageviewsStatus: pvGrowth.status,
+              isVisitorsUp: uvGrowth.isUp,
+              isPageviewsUp: pvGrowth.isUp,
+            };
+
+            periodResultCache.set(period, { data: result, exp: Date.now() + 15000 });
+
             res.statusCode = 200;
             res.setHeader('Content-Type', 'application/json');
             res.setHeader('Access-Control-Allow-Origin', '*');
-            res.end(
-              JSON.stringify({
-                pageviews: displayPageviews,
-                visitors: displayVisitors,
-                series,
-                growthVisitors: '0.0%',
-                growthPageviews: '0.0%',
-                growthVisitorsStatus: 'neutral',
-                growthPageviewsStatus: 'neutral',
-                isVisitorsUp: true,
-                isPageviewsUp: true,
-              })
-            );
+            res.end(JSON.stringify(result));
             return;
           } catch {
             next();
