@@ -1,5 +1,9 @@
 import { Redis } from '@upstash/redis';
 
+export const config = {
+  runtime: 'edge',
+};
+
 declare const process: { env: Record<string, string | undefined> };
 
 const KV_APP_KEY = 'r405x717';
@@ -22,6 +26,22 @@ function getRedis(): Redis | null {
     // Fail silently if environment variables are not yet configured
   }
   return null;
+}
+
+function fromBase64Url(str: string): string {
+  try {
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(str, 'base64url').toString('utf8');
+    }
+  } catch {
+    // browser/edge fallback
+  }
+  try {
+    const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+    return decodeURIComponent(escape(atob(base64)));
+  } catch {
+    return '{}';
+  }
 }
 
 function getDateKey(date: Date): string {
@@ -70,7 +90,7 @@ export default async function handler(req: Request) {
     });
   }
 
-  const url = new URL(req.url);
+  const url = new URL(req.url, 'http://localhost');
   const period = url.searchParams.get('period') || '7d';
 
   const redis = getRedis();
@@ -78,6 +98,7 @@ export default async function handler(req: Request) {
 
   // Strategy 1: Upstash Redis / Vercel KV (primary when configured)
   if (redis) {
+
     try {
       if (period === '24h') {
         const points = 24;
@@ -202,7 +223,7 @@ export default async function handler(req: Request) {
       try {
         const rawVal = await res.json();
         if (rawVal && typeof rawVal === 'string') {
-          const decoded = Buffer.from(rawVal, 'base64url').toString('utf8');
+          const decoded = fromBase64Url(rawVal);
           cloudData = JSON.parse(decoded);
         }
       } catch {

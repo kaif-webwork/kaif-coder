@@ -1,5 +1,9 @@
 import { Redis } from '@upstash/redis';
 
+export const config = {
+  runtime: 'edge',
+};
+
 declare const process: { env: Record<string, string | undefined> };
 
 const KV_APP_KEY = 'r405x717';
@@ -22,6 +26,38 @@ function getRedis(): Redis | null {
     // Suppress configuration lookup errors
   }
   return null;
+}
+
+function toBase64Url(str: string): string {
+  try {
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(str).toString('base64url');
+    }
+  } catch {
+    // edge fallback
+  }
+  try {
+    const base64 = btoa(unescape(encodeURIComponent(str)));
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  } catch {
+    return '';
+  }
+}
+
+function fromBase64Url(str: string): string {
+  try {
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(str, 'base64url').toString('utf8');
+    }
+  } catch {
+    // edge fallback
+  }
+  try {
+    const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+    return decodeURIComponent(escape(atob(base64)));
+  } catch {
+    return '{}';
+  }
 }
 
 function getDateKey(date: Date = new Date()): string {
@@ -125,7 +161,7 @@ export default async function handler(req: Request) {
         try {
           const rawVal = await getRes.json();
           if (rawVal && typeof rawVal === 'string') {
-            const decoded = Buffer.from(rawVal, 'base64url').toString('utf8');
+            const decoded = fromBase64Url(rawVal);
             currentData = JSON.parse(decoded);
           }
         } catch {
@@ -201,7 +237,7 @@ export default async function handler(req: Request) {
           }
         }
 
-        const encoded = Buffer.from(JSON.stringify(currentData)).toString('base64url');
+        const encoded = toBase64Url(JSON.stringify(currentData));
         await fetch(`${KV_BASE_URL}/UpdateValue/${KV_APP_KEY}/analytics/${encoded}`, {
           method: 'POST',
         });
