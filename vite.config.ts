@@ -1,7 +1,8 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 
-const CLOUD_SYNC_URL = 'https://api.restful-api.dev/objects/ff808181a09d98f701a0e6db00c02c66';
+const KV_APP_KEY = 'r405x717';
+const KV_BASE_URL = 'https://keyvalue.immanuel.co/api/KeyVal';
 
 function localAnalyticsPlugin(): Plugin {
   return {
@@ -28,7 +29,7 @@ function localAnalyticsPlugin(): Plugin {
 
           req.on('end', async () => {
             try {
-              let body: { path?: string; visitorId?: string } = {};
+              let body: { path?: string; visitorId?: string; isNewDevice?: boolean } = {};
               try {
                 body = JSON.parse(bodyStr);
               } catch {
@@ -38,61 +39,93 @@ function localAnalyticsPlugin(): Plugin {
               const now = new Date();
               const today = now.toISOString().slice(0, 10);
               const hour = String(now.getUTCHours()).padStart(2, '0');
-              const visitorId = body.visitorId || 'v_local';
+              const visitorId = body.visitorId || 'dev_local';
+              const path = body.path || '/';
+              const pvEntryKey = `${visitorId}:${path}`;
 
-              // Sync to shared cloud storage in dev
+              // Sync to shared storage with strict deduplication
               try {
-                const getRes = await fetch(CLOUD_SYNC_URL, {
+                const getRes = await fetch(`${KV_BASE_URL}/GetValue/${KV_APP_KEY}/analytics`, {
                   headers: { Accept: 'application/json' },
                 });
-                let currentData: any = { daily: {}, totalPv: 0, allVisitors: [] };
+                let currentData: any = { daily: {}, allPvKeys: [], allVisitors: [] };
                 if (getRes.ok) {
-                  const json = (await getRes.json()) as any;
-                  if (json?.data && typeof json.data === 'object') {
-                    currentData = json.data;
+                  try {
+                    const rawVal = await getRes.json();
+                    if (rawVal && typeof rawVal === 'string') {
+                      const decoded = Buffer.from(rawVal, 'base64url').toString('utf8');
+                      currentData = JSON.parse(decoded);
+                    }
+                  } catch {
+                    // ignore parse error
                   }
                 }
 
                 currentData.daily = currentData.daily || {};
+                currentData.allVisitors = Array.isArray(currentData.allVisitors) ? currentData.allVisitors : [];
+                currentData.allPvKeys = Array.isArray(currentData.allPvKeys) ? currentData.allPvKeys : [];
+
                 if (!currentData.daily[today]) {
                   currentData.daily[today] = {
                     pageviews: 0,
                     visitors: [],
+                    pvKeys: [],
                     hourly: {},
                     hourlyVisitors: {},
                   };
                 }
 
                 const day = currentData.daily[today];
-                day.pageviews = (Number(day.pageviews) || 0) + 1;
+                day.pvKeys = Array.isArray(day.pvKeys) ? day.pvKeys : [];
                 day.visitors = Array.isArray(day.visitors) ? day.visitors : [];
-                if (!day.visitors.includes(visitorId)) {
-                  day.visitors.push(visitorId);
-                }
-
                 day.hourly = day.hourly || {};
-                day.hourly[hour] = (Number(day.hourly[hour]) || 0) + 1;
-
                 day.hourlyVisitors = day.hourlyVisitors || {};
                 day.hourlyVisitors[hour] = Array.isArray(day.hourlyVisitors[hour]) ? day.hourlyVisitors[hour] : [];
-                if (!day.hourlyVisitors[hour].includes(visitorId)) {
-                  day.hourlyVisitors[hour].push(visitorId);
+
+                const isAlreadyVisitor = currentData.allVisitors.includes(visitorId);
+                const isAlreadyPv = day.pvKeys.includes(pvEntryKey);
+
+                // If already tracked for this device and route, skip!
+                if (isAlreadyVisitor && isAlreadyPv) {
+                  res.statusCode = 200;
+                  res.setHeader('Content-Type', 'application/json');
+                  res.setHeader('Access-Control-Allow-Origin', '*');
+                  res.end(JSON.stringify({ ok: true, deduplicated: true }));
+                  return;
                 }
 
-                currentData.totalPv = (Number(currentData.totalPv) || 0) + 1;
-                currentData.allVisitors = Array.isArray(currentData.allVisitors) ? currentData.allVisitors : [];
-                if (!currentData.allVisitors.includes(visitorId)) {
+                let changed = false;
+
+                if (!isAlreadyVisitor) {
                   currentData.allVisitors.push(visitorId);
+                  if (!day.visitors.includes(visitorId)) {
+                    day.visitors.push(visitorId);
+                  }
+                  if (!day.hourlyVisitors[hour].includes(visitorId)) {
+                    day.hourlyVisitors[hour].push(visitorId);
+                  }
+                  changed = true;
+                } else if (!day.visitors.includes(visitorId) && day.visitors.length === 0) {
+                  day.visitors.push(visitorId);
+                  changed = true;
                 }
 
-                await fetch(CLOUD_SYNC_URL, {
-                  method: 'PUT',
-                  headers: { 'content-type': 'application/json' },
-                  body: JSON.stringify({
-                    name: 'kaif_analytics',
-                    data: currentData,
-                  }),
-                });
+                if (!isAlreadyPv) {
+                  day.pvKeys.push(pvEntryKey);
+                  day.pageviews = day.pvKeys.length;
+                  day.hourly[hour] = (Number(day.hourly[hour]) || 0) + 1;
+                  if (!currentData.allPvKeys.includes(pvEntryKey)) {
+                    currentData.allPvKeys.push(pvEntryKey);
+                  }
+                  changed = true;
+                }
+
+                if (changed) {
+                  const encoded = Buffer.from(JSON.stringify(currentData)).toString('base64url');
+                  await fetch(`${KV_BASE_URL}/UpdateValue/${KV_APP_KEY}/analytics/${encoded}`, {
+                    method: 'POST',
+                  });
+                }
               } catch {
                 // local fallback
               }
@@ -129,12 +162,15 @@ function localAnalyticsPlugin(): Plugin {
 
             let cloudData: any = null;
             try {
-              const cloudRes = await fetch(CLOUD_SYNC_URL, {
+              const cloudRes = await fetch(`${KV_BASE_URL}/GetValue/${KV_APP_KEY}/analytics`, {
                 headers: { Accept: 'application/json' },
               });
               if (cloudRes.ok) {
-                const cloudJson = (await cloudRes.json()) as any;
-                cloudData = cloudJson?.data;
+                const rawVal = await cloudRes.json();
+                if (rawVal && typeof rawVal === 'string') {
+                  const decoded = Buffer.from(rawVal, 'base64url').toString('utf8');
+                  cloudData = JSON.parse(decoded);
+                }
               }
             } catch {
               // fallback
@@ -175,10 +211,10 @@ function localAnalyticsPlugin(): Plugin {
                   pageviews: currPv,
                   visitors: totalVisitors,
                   series,
-                  growthVisitors: '↑ 100.0%',
-                  growthPageviews: '↑ 100.0%',
-                  growthVisitorsStatus: 'up',
-                  growthPageviewsStatus: 'up',
+                  growthVisitors: '0.0%',
+                  growthPageviews: '0.0%',
+                  growthVisitorsStatus: 'neutral',
+                  growthPageviewsStatus: 'neutral',
                   isVisitorsUp: true,
                   isPageviewsUp: true,
                 })
@@ -188,8 +224,9 @@ function localAnalyticsPlugin(): Plugin {
 
             // 7d or 30d
             const series = [];
-            let currPv = 0;
             const currVisitors = new Set<string>();
+            const currPvKeys = new Set<string>();
+            let sumPv = 0;
 
             for (let i = days - 1; i >= 0; i--) {
               const d = new Date(now.getTime() - i * 86400000);
@@ -197,29 +234,35 @@ function localAnalyticsPlugin(): Plugin {
               const timestamp = d.getTime();
 
               const dayData = daily[dateKey];
-              const pv = Number(dayData?.pageviews) || 0;
+              const pv = Array.isArray(dayData?.pvKeys)
+                ? dayData.pvKeys.length
+                : Number(dayData?.pageviews) || 0;
               const uvList = Array.isArray(dayData?.visitors) ? dayData.visitors : [];
               const uv = uvList.length > 0 ? uvList.length : pv > 0 ? 1 : 0;
 
               uvList.forEach((v: string) => currVisitors.add(v));
-              currPv += pv;
+              if (Array.isArray(dayData?.pvKeys)) {
+                dayData.pvKeys.forEach((k: string) => currPvKeys.add(k));
+              }
+              sumPv += pv;
               series.push({ timestamp, pageviews: pv, visitors: uv });
             }
 
-            const totalVisitors = currVisitors.size > 0 ? currVisitors.size : currPv > 0 ? 1 : 0;
+            const totalVisitors = currVisitors.size > 0 ? currVisitors.size : sumPv > 0 ? 1 : 0;
+            const totalPv = currPvKeys.size > 0 ? currPvKeys.size : sumPv;
 
             res.statusCode = 200;
             res.setHeader('Content-Type', 'application/json');
             res.setHeader('Access-Control-Allow-Origin', '*');
             res.end(
               JSON.stringify({
-                pageviews: currPv,
+                pageviews: totalPv,
                 visitors: totalVisitors,
                 series,
-                growthVisitors: '↑ 100.0%',
-                growthPageviews: '↑ 100.0%',
-                growthVisitorsStatus: 'up',
-                growthPageviewsStatus: 'up',
+                growthVisitors: '0.0%',
+                growthPageviews: '0.0%',
+                growthVisitorsStatus: 'neutral',
+                growthPageviewsStatus: 'neutral',
                 isVisitorsUp: true,
                 isPageviewsUp: true,
               })

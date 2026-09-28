@@ -2,7 +2,8 @@ import { Redis } from '@upstash/redis';
 
 declare const process: { env: Record<string, string | undefined> };
 
-const CLOUD_SYNC_URL = 'https://api.restful-api.dev/objects/ff808181a09d98f701a0e6db00c02c66';
+const KV_APP_KEY = 'r405x717';
+const KV_BASE_URL = `https://keyvalue.immanuel.co/api/KeyVal`;
 
 let redisInstance: Redis | null = null;
 
@@ -62,11 +63,11 @@ export default async function handler(req: Request) {
   }
 
   try {
-    let body: { path?: string; ref?: string; visitorId?: string } = {};
+    let body: { path?: string; ref?: string; visitorId?: string; isNewDevice?: boolean } = {};
     try {
       body = (await req.json()) as typeof body;
     } catch {
-      // In case of sendBeacon with plain text / empty payload
+      // sendBeacon payload fallback
     }
 
     const now = new Date();
@@ -77,25 +78,29 @@ export default async function handler(req: Request) {
     const ip = forwarded ? forwarded.split(',')[0].trim() : '127.0.0.1';
     const clientVisitorId = body.visitorId || 'v_anon';
 
-    // Unique per-device & per-day visitor hash
-    // Combines client device ID + IP for 100% accurate multi-device counting even on same Wi-Fi
-    const visitorHash = hashString(`${clientVisitorId}_${ip}_${today}`);
+    // Unique per-device hash (stable across days so repeat visits are deduplicated)
+    const visitorHash = hashString(`${clientVisitorId}_${ip}`);
+    const pvEntryKey = `${visitorHash}:${body.path || '/'}`;
 
     const redis = getRedis();
 
     // Strategy 1: Upstash Redis / Vercel KV (primary when configured)
     if (redis) {
       const pipeline = redis.pipeline();
+      // 1. Unique visitors set (deduplicated per device)
+      pipeline.sadd('uv:all', visitorHash);
       pipeline.sadd(`uv:${today}`, visitorHash);
       pipeline.sadd(`uvh:${today}:${hour}`, visitorHash);
-      pipeline.hincrby(`pv:${today}`, 'count', 1);
-      pipeline.incr(`pvh:${today}:${hour}`);
-      pipeline.incr('pv:total');
+
+      // 2. Unique pageviews set (deduplicated per device & route)
+      pipeline.sadd('pvs:all', pvEntryKey);
+      pipeline.sadd(`pvs:${today}`, pvEntryKey);
+      pipeline.sadd(`pvsh:${today}:${hour}`, pvEntryKey);
 
       pipeline.expire(`uv:${today}`, 90 * 86400);
       pipeline.expire(`uvh:${today}:${hour}`, 7 * 86400);
-      pipeline.expire(`pv:${today}`, 90 * 86400);
-      pipeline.expire(`pvh:${today}:${hour}`, 7 * 86400);
+      pipeline.expire(`pvs:${today}`, 90 * 86400);
+      pipeline.expire(`pvsh:${today}:${hour}`, 7 * 86400);
 
       await pipeline.exec();
 
@@ -104,73 +109,103 @@ export default async function handler(req: Request) {
       });
     }
 
-    // Strategy 2: High-Availability Cloud Storage Fallback (zero-config global sync)
+    // Strategy 2: High-Availability Cloud Storage Fallback
     try {
-      const getRes = await fetch(CLOUD_SYNC_URL, {
+      const getRes = await fetch(`${KV_BASE_URL}/GetValue/${KV_APP_KEY}/analytics`, {
         headers: { Accept: 'application/json' },
       });
 
       let currentData: any = {
-        totalPv: 0,
         allVisitors: [],
+        allPvKeys: [],
         daily: {},
       };
 
       if (getRes.ok) {
-        const json = await getRes.json();
-        if (json?.data && typeof json.data === 'object') {
-          currentData = json.data;
+        try {
+          const rawVal = await getRes.json();
+          if (rawVal && typeof rawVal === 'string') {
+            const decoded = Buffer.from(rawVal, 'base64url').toString('utf8');
+            currentData = JSON.parse(decoded);
+          }
+        } catch {
+          // ignore parsing error
         }
       }
 
       currentData.daily = currentData.daily || {};
+      currentData.allVisitors = Array.isArray(currentData.allVisitors) ? currentData.allVisitors : [];
+      currentData.allPvKeys = Array.isArray(currentData.allPvKeys) ? currentData.allPvKeys : [];
+
       if (!currentData.daily[today]) {
         currentData.daily[today] = {
           pageviews: 0,
           visitors: [],
+          pvKeys: [],
           hourly: {},
           hourlyVisitors: {},
         };
       }
 
       const day = currentData.daily[today];
-      day.pageviews = (Number(day.pageviews) || 0) + 1;
+      day.pvKeys = Array.isArray(day.pvKeys) ? day.pvKeys : [];
       day.visitors = Array.isArray(day.visitors) ? day.visitors : [];
-      if (!day.visitors.includes(visitorHash)) {
-        day.visitors.push(visitorHash);
-      }
-
       day.hourly = day.hourly || {};
-      day.hourly[hour] = (Number(day.hourly[hour]) || 0) + 1;
-
       day.hourlyVisitors = day.hourlyVisitors || {};
       day.hourlyVisitors[hour] = Array.isArray(day.hourlyVisitors[hour]) ? day.hourlyVisitors[hour] : [];
-      if (!day.hourlyVisitors[hour].includes(visitorHash)) {
-        day.hourlyVisitors[hour].push(visitorHash);
+
+      const isAlreadyCountedVisitor = currentData.allVisitors.includes(visitorHash);
+      const isAlreadyViewedPage = day.pvKeys.includes(pvEntryKey);
+
+      // If already visited this route, DO NOT increment anything!
+      if (isAlreadyViewedPage && isAlreadyCountedVisitor) {
+        return new Response(JSON.stringify({ ok: true, deduplicated: true }), {
+          headers: CORS_HEADERS,
+        });
       }
 
-      currentData.totalPv = (Number(currentData.totalPv) || 0) + 1;
-      currentData.allVisitors = Array.isArray(currentData.allVisitors) ? currentData.allVisitors : [];
-      if (!currentData.allVisitors.includes(visitorHash)) {
+      let changed = false;
+
+      // Unique device visitor count
+      if (!isAlreadyCountedVisitor) {
         currentData.allVisitors.push(visitorHash);
-      }
-
-      // Keep only last 35 days in cloud fallback to maintain fast response times
-      const dateKeys = Object.keys(currentData.daily).sort();
-      if (dateKeys.length > 35) {
-        for (const oldKey of dateKeys.slice(0, dateKeys.length - 35)) {
-          delete currentData.daily[oldKey];
+        if (!day.visitors.includes(visitorHash)) {
+          day.visitors.push(visitorHash);
         }
+        if (!day.hourlyVisitors[hour].includes(visitorHash)) {
+          day.hourlyVisitors[hour].push(visitorHash);
+        }
+        changed = true;
+      } else if (!day.visitors.includes(visitorHash) && day.visitors.length === 0) {
+        day.visitors.push(visitorHash);
+        changed = true;
       }
 
-      await fetch(CLOUD_SYNC_URL, {
-        method: 'PUT',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          name: 'kaif_analytics',
-          data: currentData,
-        }),
-      });
+      // Unique pageview count
+      if (!isAlreadyViewedPage) {
+        day.pvKeys.push(pvEntryKey);
+        day.pageviews = day.pvKeys.length;
+        day.hourly[hour] = (Number(day.hourly[hour]) || 0) + 1;
+        if (!currentData.allPvKeys.includes(pvEntryKey)) {
+          currentData.allPvKeys.push(pvEntryKey);
+        }
+        changed = true;
+      }
+
+      if (changed) {
+        // Keep last 35 days only to maintain lightweight storage
+        const dateKeys = Object.keys(currentData.daily).sort();
+        if (dateKeys.length > 35) {
+          for (const oldKey of dateKeys.slice(0, dateKeys.length - 35)) {
+            delete currentData.daily[oldKey];
+          }
+        }
+
+        const encoded = Buffer.from(JSON.stringify(currentData)).toString('base64url');
+        await fetch(`${KV_BASE_URL}/UpdateValue/${KV_APP_KEY}/analytics/${encoded}`, {
+          method: 'POST',
+        });
+      }
 
       return new Response(JSON.stringify({ ok: true, engine: 'cloud_sync' }), {
         headers: CORS_HEADERS,
@@ -192,3 +227,4 @@ export default async function handler(req: Request) {
     );
   }
 }
+

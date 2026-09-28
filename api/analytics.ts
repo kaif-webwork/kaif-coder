@@ -2,7 +2,8 @@ import { Redis } from '@upstash/redis';
 
 declare const process: { env: Record<string, string | undefined> };
 
-const CLOUD_SYNC_URL = 'https://api.restful-api.dev/objects/ff808181a09d98f701a0e6db00c02c66';
+const KV_APP_KEY = 'r405x717';
+const KV_BASE_URL = `https://keyvalue.immanuel.co/api/KeyVal`;
 
 let redisInstance: Redis | null = null;
 
@@ -75,7 +76,7 @@ export default async function handler(req: Request) {
   const redis = getRedis();
   const now = new Date();
 
-  // Strategy 1: Upstash Redis / Vercel KV
+  // Strategy 1: Upstash Redis / Vercel KV (primary when configured)
   if (redis) {
     try {
       if (period === '24h') {
@@ -91,7 +92,7 @@ export default async function handler(req: Request) {
           if (i < points) {
             timestamps.push(d.getTime());
           }
-          pipeline.get(`pvh:${dateKey}:${hourKey}`);
+          pipeline.scard(`pvsh:${dateKey}:${hourKey}`);
           pipeline.scard(`uvh:${dateKey}:${hourKey}`);
         }
 
@@ -143,7 +144,7 @@ export default async function handler(req: Request) {
           if (i < days) {
             timestamps.push(d.getTime());
           }
-          pipeline.hget(`pv:${dateKey}`, 'count');
+          pipeline.scard(`pvs:${dateKey}`);
           pipeline.scard(`uv:${dateKey}`);
         }
 
@@ -192,13 +193,22 @@ export default async function handler(req: Request) {
 
   // Strategy 2: High-Availability Cloud Storage Fallback (zero-config global sync)
   try {
-    const res = await fetch(CLOUD_SYNC_URL, {
+    const res = await fetch(`${KV_BASE_URL}/GetValue/${KV_APP_KEY}/analytics`, {
       headers: { Accept: 'application/json' },
     });
 
     if (res.ok) {
-      const json = await res.json();
-      const cloudData = json?.data;
+      let cloudData: any = null;
+      try {
+        const rawVal = await res.json();
+        if (rawVal && typeof rawVal === 'string') {
+          const decoded = Buffer.from(rawVal, 'base64url').toString('utf8');
+          cloudData = JSON.parse(decoded);
+        }
+      } catch {
+        // ignore parse error
+      }
+
       if (cloudData && typeof cloudData === 'object') {
         const daily = cloudData.daily || {};
 
@@ -268,10 +278,12 @@ export default async function handler(req: Request) {
         } else {
           const days = period === '30d' ? 30 : 7;
           const series = [];
-          let currPv = 0;
-          let prevPv = 0;
           const currVisitors = new Set<string>();
           const prevVisitors = new Set<string>();
+          const currPvKeys = new Set<string>();
+          const prevPvKeys = new Set<string>();
+          let sumPv = 0;
+          let sumPrevPv = 0;
 
           for (let i = days - 1; i >= 0; i--) {
             const d = new Date(now.getTime() - i * 86400000);
@@ -279,12 +291,17 @@ export default async function handler(req: Request) {
             const timestamp = d.getTime();
 
             const dayData = daily[dateKey];
-            const pv = Number(dayData?.pageviews) || 0;
+            const pv = Array.isArray(dayData?.pvKeys)
+              ? dayData.pvKeys.length
+              : Number(dayData?.pageviews) || 0;
             const uvList = Array.isArray(dayData?.visitors) ? dayData.visitors : [];
             const uv = uvList.length > 0 ? uvList.length : pv > 0 ? 1 : 0;
 
             uvList.forEach((v: string) => currVisitors.add(v));
-            currPv += pv;
+            if (Array.isArray(dayData?.pvKeys)) {
+              dayData.pvKeys.forEach((k: string) => currPvKeys.add(k));
+            }
+            sumPv += pv;
             series.push({ timestamp, pageviews: pv, visitors: uv });
           }
 
@@ -294,22 +311,30 @@ export default async function handler(req: Request) {
             const dateKey = getDateKey(d);
 
             const dayData = daily[dateKey];
-            const pv = Number(dayData?.pageviews) || 0;
+            const pv = Array.isArray(dayData?.pvKeys)
+              ? dayData.pvKeys.length
+              : Number(dayData?.pageviews) || 0;
             const uvList = Array.isArray(dayData?.visitors) ? dayData.visitors : [];
 
             uvList.forEach((v: string) => prevVisitors.add(v));
-            prevPv += pv;
+            if (Array.isArray(dayData?.pvKeys)) {
+              dayData.pvKeys.forEach((k: string) => prevPvKeys.add(k));
+            }
+            sumPrevPv += pv;
           }
 
-          const totalVisitors = currVisitors.size > 0 ? currVisitors.size : currPv > 0 ? 1 : 0;
-          const totalPrevVisitors = prevVisitors.size > 0 ? prevVisitors.size : prevPv > 0 ? 1 : 0;
+          const totalVisitors = currVisitors.size > 0 ? currVisitors.size : sumPv > 0 ? 1 : 0;
+          const totalPrevVisitors = prevVisitors.size > 0 ? prevVisitors.size : sumPrevPv > 0 ? 1 : 0;
+
+          const totalPv = currPvKeys.size > 0 ? currPvKeys.size : sumPv;
+          const totalPrevPv = prevPvKeys.size > 0 ? prevPvKeys.size : sumPrevPv;
 
           const uvGrowth = calculateGrowth(totalVisitors, totalPrevVisitors);
-          const pvGrowth = calculateGrowth(currPv, prevPv);
+          const pvGrowth = calculateGrowth(totalPv, totalPrevPv);
 
           return new Response(
             JSON.stringify({
-              pageviews: currPv,
+              pageviews: totalPv,
               visitors: totalVisitors,
               series,
               growthVisitors: uvGrowth.text,
@@ -356,3 +381,4 @@ export default async function handler(req: Request) {
     { headers: CORS_HEADERS }
   );
 }
+
