@@ -79,7 +79,7 @@ const CORS_HEADERS = {
   'access-control-allow-methods': 'GET, POST, OPTIONS',
   'access-control-allow-headers': 'Content-Type, Authorization',
   'x-content-type-options': 'nosniff',
-  'cache-control': 'public, s-maxage=10, stale-while-revalidate=60',
+  'cache-control': 'no-store, no-cache, must-revalidate',
 };
 
 export default async function handler(req: Request) {
