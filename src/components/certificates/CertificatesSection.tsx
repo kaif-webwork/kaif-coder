@@ -301,17 +301,6 @@ export default function CertificatesSection() {
               />
             </div>
 
-            {/* Bottom Footer - Clean 'Close' Button Without 'Esc' */}
-            <div className="cert-lightbox-footer">
-              <span className="cert-lightbox-caption">{previewImage.title}</span>
-              <button
-                type="button"
-                className="cert-lightbox-dismiss-btn"
-                onClick={handleCloseLightbox}
-              >
-                Close
-              </button>
-            </div>
           </div>
         </div>
       )}
