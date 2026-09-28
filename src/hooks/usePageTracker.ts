@@ -21,34 +21,17 @@ export function usePageTracker() {
     if (lastTrackedPath.current === currentPath) return;
     lastTrackedPath.current = currentPath;
 
-    let visitedRoutes: string[] = [];
     let isNewDevice = false;
+    let isPathTrackedInSession = false;
 
     try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        isPathTrackedInSession = !!window.sessionStorage.getItem(`kaif_trk_${currentPath}`);
+        window.sessionStorage.setItem(`kaif_trk_${currentPath}`, '1');
+      }
+
       if (typeof localStorage !== 'undefined') {
-        const raw = localStorage.getItem(DEVICE_ROUTES_KEY);
-        if (raw) {
-          try {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-              visitedRoutes = parsed;
-            }
-          } catch {
-            visitedRoutes = [];
-          }
-        }
-
-        // If this device has already visited this route, DO NOT increment anything!
-        if (visitedRoutes.includes(currentPath)) {
-          return;
-        }
-
-        // Check if device is visiting the website for the very first time
         isNewDevice = !localStorage.getItem(DEVICE_SEEN_KEY);
-
-        // Record this route as visited by this device permanently
-        visitedRoutes.push(currentPath);
-        localStorage.setItem(DEVICE_ROUTES_KEY, JSON.stringify(visitedRoutes));
         localStorage.setItem(DEVICE_SEEN_KEY, '1');
       }
     } catch {
@@ -57,10 +40,16 @@ export function usePageTracker() {
 
     const visitorId = getVisitorId();
 
-    // 1. Client-side local visit recording (strictly deduplicated)
+    // 1. Client-side local visit recording (strictly deduplicated per device)
     recordRealPageView(currentPath, isNewDevice);
 
-    // 2. Silent backend beacon to /api/track for multi-device sync
+    // If already tracked in this active session tab, avoid redundant network requests
+    if (isPathTrackedInSession) {
+      return;
+    }
+
+    // 2. Cloud backend beacon to /api/track for global shared multi-device sync
+    // The server performs permanent deduplication so refreshes and repeat visits never increment counts
     try {
       const payloadString = JSON.stringify({
         path: currentPath,

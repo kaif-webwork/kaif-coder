@@ -1,76 +1,36 @@
-import { Redis } from '@upstash/redis';
+declare const process: { env: Record<string, string | undefined> };
 
 export const config = {
   runtime: 'edge',
 };
 
-declare const process: { env: Record<string, string | undefined> };
-
 const KV_APP_KEY = 'r405x717';
-const KV_BASE_URL = `https://keyvalue.immanuel.co/api/KeyVal`;
+const KV_BASE_URL = 'https://keyvalue.immanuel.co/api/KeyVal';
 
-let redisInstance: Redis | null = null;
-
-function getRedis(): Redis | null {
-  if (redisInstance) return redisInstance;
+async function getVal(key: string): Promise<string | null> {
   try {
-    const env = typeof process !== 'undefined' ? process.env : undefined;
-    const url = env?.UPSTASH_REDIS_REST_URL || env?.KV_REST_API_URL;
-    const token = env?.UPSTASH_REDIS_REST_TOKEN || env?.KV_REST_API_TOKEN;
-
-    if (url && token) {
-      redisInstance = new Redis({ url, token });
-      return redisInstance;
-    }
+    const res = await fetch(`${KV_BASE_URL}/GetValue/${KV_APP_KEY}/${key}`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (json == null || json === '') return null;
+    return String(json);
   } catch {
-    // Suppress configuration lookup errors
-  }
-  return null;
-}
-
-function toBase64Url(str: string): string {
-  try {
-    if (typeof Buffer !== 'undefined' && Buffer.from) {
-      return Buffer.from(str).toString('base64url');
-    }
-  } catch {
-    // edge fallback
-  }
-  try {
-    const bytes = new TextEncoder().encode(str);
-    let binary = '';
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  } catch {
-    return '';
+    return null;
   }
 }
 
-function fromBase64Url(str: string): string {
+async function setVal(key: string, val: string | number): Promise<boolean> {
   try {
-    if (typeof Buffer !== 'undefined' && Buffer.from) {
-      return Buffer.from(str, 'base64url').toString('utf8');
-    }
+    const res = await fetch(
+      `${KV_BASE_URL}/UpdateValue/${KV_APP_KEY}/${key}/${encodeURIComponent(String(val))}`,
+      { method: 'POST' }
+    );
+    return res.ok;
   } catch {
-    // edge fallback
+    return false;
   }
-  try {
-    const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    return new TextDecoder().decode(bytes);
-  } catch {
-    return '{}';
-  }
-}
-
-function getDateKey(date: Date = new Date()): string {
-  return date.toISOString().slice(0, 10);
 }
 
 function hashString(str: string): string {
@@ -92,12 +52,8 @@ const CORS_HEADERS = {
 };
 
 export default async function handler(req: Request) {
-  // 1. Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: CORS_HEADERS,
-    });
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
   }
 
   if (req.method !== 'POST') {
@@ -108,158 +64,100 @@ export default async function handler(req: Request) {
   }
 
   try {
-    let body: { path?: string; ref?: string; visitorId?: string; isNewDevice?: boolean } = {};
+    let body: { path?: string; ref?: string; visitorId?: string } = {};
     try {
       body = (await req.json()) as typeof body;
     } catch {
-      // sendBeacon payload fallback
+      // payload fallback
     }
 
     const now = new Date();
-    const today = getDateKey(now);
+    const today = now.toISOString().slice(0, 10);
     const hour = String(now.getUTCHours()).padStart(2, '0');
 
     const forwarded = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip');
     const ip = forwarded ? forwarded.split(',')[0].trim() : '127.0.0.1';
     const clientVisitorId = body.visitorId || 'v_anon';
 
-    // Unique per-device hash (stable across days so repeat visits are deduplicated)
-    const visitorHash = hashString(`${clientVisitorId}_${ip}`);
-    const pvEntryKey = `${visitorHash}:${body.path || '/'}`;
+    // Unique per-device hash: persistent clientVisitorId across networks, or IP fallback
+    const visitorHash = hashString(clientVisitorId !== 'v_anon' ? clientVisitorId : `anon_${ip}`);
+    const path = body.path || '/';
+    const pvHash = hashString(`${visitorHash}_${path}`);
 
-    const redis = getRedis();
+    // Deduplication keys
+    const devEverKey = `dev_${visitorHash}`;
+    const devTodayKey = `dev_${visitorHash}_${today}`;
+    const pvEverKey = `pv_${pvHash}`;
+    const pvTodayKey = `pv_${pvHash}_${today}`;
 
-    // Strategy 1: Upstash Redis / Vercel KV (primary when configured)
-    if (redis) {
-      const pipeline = redis.pipeline();
-      // 1. Unique visitors set (deduplicated per device)
-      pipeline.sadd('uv:all', visitorHash);
-      pipeline.sadd(`uv:${today}`, visitorHash);
-      pipeline.sadd(`uvh:${today}:${hour}`, visitorHash);
+    // Parallel lookup
+    const [isDevEver, isDevToday, isPvEver, isPvToday] = await Promise.all([
+      getVal(devEverKey),
+      getVal(devTodayKey),
+      getVal(pvEverKey),
+      getVal(pvTodayKey),
+    ]);
 
-      // 2. Unique pageviews set (deduplicated per device & route)
-      pipeline.sadd('pvs:all', pvEntryKey);
-      pipeline.sadd(`pvs:${today}`, pvEntryKey);
-      pipeline.sadd(`pvsh:${today}:${hour}`, pvEntryKey);
-
-      pipeline.expire(`uv:${today}`, 90 * 86400);
-      pipeline.expire(`uvh:${today}:${hour}`, 7 * 86400);
-      pipeline.expire(`pvs:${today}`, 90 * 86400);
-      pipeline.expire(`pvsh:${today}:${hour}`, 7 * 86400);
-
-      await pipeline.exec();
-
-      return new Response(JSON.stringify({ ok: true, engine: 'redis' }), {
+    // If this device has already visited this route, DO NOT increment anything!
+    if (isDevEver && isPvEver) {
+      return new Response(JSON.stringify({ ok: true, deduplicated: true }), {
         headers: CORS_HEADERS,
       });
     }
 
-    // Strategy 2: High-Availability Cloud Storage Fallback
-    try {
-      const getRes = await fetch(`${KV_BASE_URL}/GetValue/${KV_APP_KEY}/analytics`, {
-        headers: { Accept: 'application/json' },
-      });
+    const updates: Promise<any>[] = [];
 
-      let currentData: any = {
-        allVisitors: [],
-        allPvKeys: [],
-        daily: {},
-      };
-
-      if (getRes.ok) {
-        try {
-          const rawVal = await getRes.json();
-          if (rawVal && typeof rawVal === 'string') {
-            const decoded = fromBase64Url(rawVal);
-            currentData = JSON.parse(decoded);
-          }
-        } catch {
-          // ignore parsing error
-        }
-      }
-
-      currentData.daily = currentData.daily || {};
-      currentData.allVisitors = Array.isArray(currentData.allVisitors) ? currentData.allVisitors : [];
-      currentData.allPvKeys = Array.isArray(currentData.allPvKeys) ? currentData.allPvKeys : [];
-
-      if (!currentData.daily[today]) {
-        currentData.daily[today] = {
-          pageviews: 0,
-          visitors: [],
-          pvKeys: [],
-          hourly: {},
-          hourlyVisitors: {},
-        };
-      }
-
-      const day = currentData.daily[today];
-      day.pvKeys = Array.isArray(day.pvKeys) ? day.pvKeys : [];
-      day.visitors = Array.isArray(day.visitors) ? day.visitors : [];
-      day.hourly = day.hourly || {};
-      day.hourlyVisitors = day.hourlyVisitors || {};
-      day.hourlyVisitors[hour] = Array.isArray(day.hourlyVisitors[hour]) ? day.hourlyVisitors[hour] : [];
-
-      const isAlreadyCountedVisitor = currentData.allVisitors.includes(visitorHash);
-      const isAlreadyViewedPage = day.pvKeys.includes(pvEntryKey);
-
-      // If already visited this route, DO NOT increment anything!
-      if (isAlreadyViewedPage && isAlreadyCountedVisitor) {
-        return new Response(JSON.stringify({ ok: true, deduplicated: true }), {
-          headers: CORS_HEADERS,
-        });
-      }
-
-      let changed = false;
-
-      // Unique device visitor count
-      if (!isAlreadyCountedVisitor) {
-        currentData.allVisitors.push(visitorHash);
-        if (!day.visitors.includes(visitorHash)) {
-          day.visitors.push(visitorHash);
-        }
-        if (!day.hourlyVisitors[hour].includes(visitorHash)) {
-          day.hourlyVisitors[hour].push(visitorHash);
-        }
-        changed = true;
-      } else if (!day.visitors.includes(visitorHash) && day.visitors.length === 0) {
-        day.visitors.push(visitorHash);
-        changed = true;
-      }
-
-      // Unique pageview count
-      if (!isAlreadyViewedPage) {
-        day.pvKeys.push(pvEntryKey);
-        day.pageviews = day.pvKeys.length;
-        day.hourly[hour] = (Number(day.hourly[hour]) || 0) + 1;
-        if (!currentData.allPvKeys.includes(pvEntryKey)) {
-          currentData.allPvKeys.push(pvEntryKey);
-        }
-        changed = true;
-      }
-
-      if (changed) {
-        // Keep last 35 days only to maintain lightweight storage
-        const dateKeys = Object.keys(currentData.daily).sort();
-        if (dateKeys.length > 35) {
-          for (const oldKey of dateKeys.slice(0, dateKeys.length - 35)) {
-            delete currentData.daily[oldKey];
-          }
-        }
-
-        const encoded = toBase64Url(JSON.stringify(currentData));
-        await fetch(`${KV_BASE_URL}/UpdateValue/${KV_APP_KEY}/analytics/${encoded}`, {
-          method: 'POST',
-        });
-      }
-
-      return new Response(JSON.stringify({ ok: true, engine: 'cloud_sync' }), {
-        headers: CORS_HEADERS,
-      });
-    } catch {
-      // Cloud sync fallback
+    // 1. Unique visitor count (lifetime across all devices)
+    if (!isDevEver) {
+      updates.push(
+        (async () => {
+          const totUv = parseInt((await getVal('tot_uv')) || '0', 10) + 1;
+          await setVal('tot_uv', totUv);
+          await setVal(devEverKey, '1');
+        })()
+      );
     }
 
-    return new Response(JSON.stringify({ ok: true, fallback: true }), {
+    // 2. Unique visitor count for today
+    if (!isDevToday) {
+      updates.push(
+        (async () => {
+          const dayUv = parseInt((await getVal(`uv_${today}`)) || '0', 10) + 1;
+          await setVal(`uv_${today}`, dayUv);
+          const hourUv = parseInt((await getVal(`uvh_${today}_${hour}`)) || '0', 10) + 1;
+          await setVal(`uvh_${today}_${hour}`, hourUv);
+          await setVal(devTodayKey, '1');
+        })()
+      );
+    }
+
+    // 3. Unique pageview count (lifetime across all devices)
+    if (!isPvEver) {
+      updates.push(
+        (async () => {
+          const totPv = parseInt((await getVal('tot_pv')) || '0', 10) + 1;
+          await setVal('tot_pv', totPv);
+          await setVal(pvEverKey, '1');
+        })()
+      );
+    }
+
+    // 4. Unique pageview count for today
+    if (!isPvToday) {
+      updates.push(
+        (async () => {
+          const dayPv = parseInt((await getVal(`pv_${today}`)) || '0', 10) + 1;
+          await setVal(`pv_${today}`, dayPv);
+          const hourPv = parseInt((await getVal(`pvh_${today}_${hour}`)) || '0', 10) + 1;
+          await setVal(`pvh_${today}_${hour}`, hourPv);
+          await setVal(pvTodayKey, '1');
+        })()
+      );
+    }
+
+    await Promise.all(updates);
+
+    return new Response(JSON.stringify({ ok: true, engine: 'shared_cloud' }), {
       headers: CORS_HEADERS,
     });
   } catch (err: any) {
@@ -272,4 +170,3 @@ export default async function handler(req: Request) {
     );
   }
 }
-

@@ -4,41 +4,39 @@ import react from '@vitejs/plugin-react';
 const KV_APP_KEY = 'r405x717';
 const KV_BASE_URL = 'https://keyvalue.immanuel.co/api/KeyVal';
 
-function toBase64Url(str: string): string {
+async function getVal(key: string): Promise<string | null> {
   try {
-    if (typeof Buffer !== 'undefined' && Buffer.from) {
-      return Buffer.from(str).toString('base64url');
-    }
-  } catch {}
-  try {
-    const bytes = new TextEncoder().encode(str);
-    let binary = '';
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const res = await fetch(`${KV_BASE_URL}/GetValue/${KV_APP_KEY}/${key}`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (json == null || json === '') return null;
+    return String(json);
   } catch {
-    return '';
+    return null;
   }
 }
 
-function fromBase64Url(str: string): string {
+async function setVal(key: string, val: string | number): Promise<boolean> {
   try {
-    if (typeof Buffer !== 'undefined' && Buffer.from) {
-      return Buffer.from(str, 'base64url').toString('utf8');
-    }
-  } catch {}
-  try {
-    const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    return new TextDecoder().decode(bytes);
+    const res = await fetch(
+      `${KV_BASE_URL}/UpdateValue/${KV_APP_KEY}/${key}/${encodeURIComponent(String(val))}`,
+      { method: 'POST' }
+    );
+    return res.ok;
   } catch {
-    return '{}';
+    return false;
   }
+}
+
+function hashString(str: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+  }
+  return Math.abs(hash >>> 0).toString(36);
 }
 
 function localAnalyticsPlugin(): Plugin {
@@ -78,94 +76,77 @@ function localAnalyticsPlugin(): Plugin {
               const hour = String(now.getUTCHours()).padStart(2, '0');
               const visitorId = body.visitorId || 'dev_local';
               const path = body.path || '/';
-              const pvEntryKey = `${visitorId}:${path}`;
 
-              // Sync to shared storage with strict deduplication
-              try {
-                const getRes = await fetch(`${KV_BASE_URL}/GetValue/${KV_APP_KEY}/analytics`, {
-                  headers: { Accept: 'application/json' },
-                });
-                let currentData: any = { daily: {}, allPvKeys: [], allVisitors: [] };
-                if (getRes.ok) {
-                  try {
-                    const rawVal = await getRes.json();
-                    if (rawVal && typeof rawVal === 'string') {
-                      const decoded = fromBase64Url(rawVal);
-                      currentData = JSON.parse(decoded);
-                    }
-                  } catch {
-                    // ignore parse error
-                  }
-                }
+              const visitorHash = hashString(visitorId);
+              const pvHash = hashString(`${visitorHash}_${path}`);
 
-                currentData.daily = currentData.daily || {};
-                currentData.allVisitors = Array.isArray(currentData.allVisitors) ? currentData.allVisitors : [];
-                currentData.allPvKeys = Array.isArray(currentData.allPvKeys) ? currentData.allPvKeys : [];
+              const devEverKey = `dev_${visitorHash}`;
+              const devTodayKey = `dev_${visitorHash}_${today}`;
+              const pvEverKey = `pv_${pvHash}`;
+              const pvTodayKey = `pv_${pvHash}_${today}`;
 
-                if (!currentData.daily[today]) {
-                  currentData.daily[today] = {
-                    pageviews: 0,
-                    visitors: [],
-                    pvKeys: [],
-                    hourly: {},
-                    hourlyVisitors: {},
-                  };
-                }
+              const [isDevEver, isDevToday, isPvEver, isPvToday] = await Promise.all([
+                getVal(devEverKey),
+                getVal(devTodayKey),
+                getVal(pvEverKey),
+                getVal(pvTodayKey),
+              ]);
 
-                const day = currentData.daily[today];
-                day.pvKeys = Array.isArray(day.pvKeys) ? day.pvKeys : [];
-                day.visitors = Array.isArray(day.visitors) ? day.visitors : [];
-                day.hourly = day.hourly || {};
-                day.hourlyVisitors = day.hourlyVisitors || {};
-                day.hourlyVisitors[hour] = Array.isArray(day.hourlyVisitors[hour]) ? day.hourlyVisitors[hour] : [];
-
-                const isAlreadyVisitor = currentData.allVisitors.includes(visitorId);
-                const isAlreadyPv = day.pvKeys.includes(pvEntryKey);
-
-                // If already tracked for this device and route, skip!
-                if (isAlreadyVisitor && isAlreadyPv) {
-                  res.statusCode = 200;
-                  res.setHeader('Content-Type', 'application/json');
-                  res.setHeader('Access-Control-Allow-Origin', '*');
-                  res.end(JSON.stringify({ ok: true, deduplicated: true }));
-                  return;
-                }
-
-                let changed = false;
-
-                if (!isAlreadyVisitor) {
-                  currentData.allVisitors.push(visitorId);
-                  if (!day.visitors.includes(visitorId)) {
-                    day.visitors.push(visitorId);
-                  }
-                  if (!day.hourlyVisitors[hour].includes(visitorId)) {
-                    day.hourlyVisitors[hour].push(visitorId);
-                  }
-                  changed = true;
-                } else if (!day.visitors.includes(visitorId) && day.visitors.length === 0) {
-                  day.visitors.push(visitorId);
-                  changed = true;
-                }
-
-                if (!isAlreadyPv) {
-                  day.pvKeys.push(pvEntryKey);
-                  day.pageviews = day.pvKeys.length;
-                  day.hourly[hour] = (Number(day.hourly[hour]) || 0) + 1;
-                  if (!currentData.allPvKeys.includes(pvEntryKey)) {
-                    currentData.allPvKeys.push(pvEntryKey);
-                  }
-                  changed = true;
-                }
-
-                if (changed) {
-                  const encoded = toBase64Url(JSON.stringify(currentData));
-                  await fetch(`${KV_BASE_URL}/UpdateValue/${KV_APP_KEY}/analytics/${encoded}`, {
-                    method: 'POST',
-                  });
-                }
-              } catch {
-                // local fallback
+              if (isDevEver && isPvEver) {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.end(JSON.stringify({ ok: true, deduplicated: true }));
+                return;
               }
+
+              const updates: Promise<any>[] = [];
+
+              if (!isDevEver) {
+                updates.push(
+                  (async () => {
+                    const totUv = parseInt((await getVal('tot_uv')) || '0', 10) + 1;
+                    await setVal('tot_uv', totUv);
+                    await setVal(devEverKey, '1');
+                  })()
+                );
+              }
+
+              if (!isDevToday) {
+                updates.push(
+                  (async () => {
+                    const dayUv = parseInt((await getVal(`uv_${today}`)) || '0', 10) + 1;
+                    await setVal(`uv_${today}`, dayUv);
+                    const hourUv = parseInt((await getVal(`uvh_${today}_${hour}`)) || '0', 10) + 1;
+                    await setVal(`uvh_${today}_${hour}`, hourUv);
+                    await setVal(devTodayKey, '1');
+                  })()
+                );
+              }
+
+              if (!isPvEver) {
+                updates.push(
+                  (async () => {
+                    const totPv = parseInt((await getVal('tot_pv')) || '0', 10) + 1;
+                    await setVal('tot_pv', totPv);
+                    await setVal(pvEverKey, '1');
+                  })()
+                );
+              }
+
+              if (!isPvToday) {
+                updates.push(
+                  (async () => {
+                    const dayPv = parseInt((await getVal(`pv_${today}`)) || '0', 10) + 1;
+                    await setVal(`pv_${today}`, dayPv);
+                    const hourPv = parseInt((await getVal(`pvh_${today}_${hour}`)) || '0', 10) + 1;
+                    await setVal(`pvh_${today}_${hour}`, hourPv);
+                    await setVal(pvTodayKey, '1');
+                  })()
+                );
+              }
+
+              await Promise.all(updates);
 
               res.statusCode = 200;
               res.setHeader('Content-Type', 'application/json');
@@ -197,56 +178,42 @@ function localAnalyticsPlugin(): Plugin {
             const period = urlObj.searchParams.get('period') || '7d';
             const now = new Date();
 
-            let cloudData: any = null;
-            try {
-              const cloudRes = await fetch(`${KV_BASE_URL}/GetValue/${KV_APP_KEY}/analytics`, {
-                headers: { Accept: 'application/json' },
-              });
-              if (cloudRes.ok) {
-                const rawVal = await cloudRes.json();
-                if (rawVal && typeof rawVal === 'string') {
-                  const decoded = fromBase64Url(rawVal);
-                  cloudData = JSON.parse(decoded);
-                }
-              }
-            } catch {
-              // fallback
-            }
+            const [rawTotUv, rawTotPv] = await Promise.all([
+              getVal('tot_uv'),
+              getVal('tot_pv'),
+            ]);
 
-            const daily = cloudData?.daily || {};
-            const days = period === '30d' ? 30 : period === '24h' ? 24 : 7;
+            const totUv = Math.max(0, parseInt(rawTotUv || '0', 10));
+            const totPv = Math.max(0, parseInt(rawTotPv || '0', 10));
 
             if (period === '24h') {
               const points = 24;
-              const series = [];
-              let currPv = 0;
-              const currVisitors = new Set<string>();
+              const timestamps: number[] = [];
+              const keysToFetch: string[] = [];
 
               for (let i = points - 1; i >= 0; i--) {
                 const d = new Date(now.getTime() - i * 3600000);
                 const dateKey = d.toISOString().slice(0, 10);
                 const hourKey = String(d.getUTCHours()).padStart(2, '0');
-                const timestamp = d.getTime();
-
-                const dayData = daily[dateKey];
-                const pv = Number(dayData?.hourly?.[hourKey]) || 0;
-                const uvList = Array.isArray(dayData?.hourlyVisitors?.[hourKey]) ? dayData.hourlyVisitors[hourKey] : [];
-                const uv = uvList.length > 0 ? uvList.length : pv > 0 ? 1 : 0;
-
-                uvList.forEach((v: string) => currVisitors.add(v));
-                currPv += pv;
-                series.push({ timestamp, pageviews: pv, visitors: uv });
+                timestamps.push(d.getTime());
+                keysToFetch.push(`uvh_${dateKey}_${hourKey}`, `pvh_${dateKey}_${hourKey}`);
               }
 
-              const totalVisitors = currVisitors.size > 0 ? currVisitors.size : currPv > 0 ? 1 : 0;
+              const values = await Promise.all(keysToFetch.map(getVal));
+
+              const series = timestamps.map((timestamp, i) => {
+                const uv = parseInt(values[i * 2] || '0', 10);
+                const pv = parseInt(values[i * 2 + 1] || '0', 10);
+                return { timestamp, pageviews: pv, visitors: uv };
+              });
 
               res.statusCode = 200;
               res.setHeader('Content-Type', 'application/json');
               res.setHeader('Access-Control-Allow-Origin', '*');
               res.end(
                 JSON.stringify({
-                  pageviews: currPv,
-                  visitors: totalVisitors,
+                  pageviews: totPv,
+                  visitors: totUv,
                   series,
                   growthVisitors: '0.0%',
                   growthPageviews: '0.0%',
@@ -260,41 +227,50 @@ function localAnalyticsPlugin(): Plugin {
             }
 
             // 7d or 30d
-            const series = [];
-            const currVisitors = new Set<string>();
-            const currPvKeys = new Set<string>();
-            let sumPv = 0;
+            const days = period === '30d' ? 30 : 7;
+            const timestamps: number[] = [];
+            const keysToFetch: string[] = [];
 
             for (let i = days - 1; i >= 0; i--) {
               const d = new Date(now.getTime() - i * 86400000);
               const dateKey = d.toISOString().slice(0, 10);
-              const timestamp = d.getTime();
-
-              const dayData = daily[dateKey];
-              const pv = Array.isArray(dayData?.pvKeys)
-                ? dayData.pvKeys.length
-                : Number(dayData?.pageviews) || 0;
-              const uvList = Array.isArray(dayData?.visitors) ? dayData.visitors : [];
-              const uv = uvList.length > 0 ? uvList.length : pv > 0 ? 1 : 0;
-
-              uvList.forEach((v: string) => currVisitors.add(v));
-              if (Array.isArray(dayData?.pvKeys)) {
-                dayData.pvKeys.forEach((k: string) => currPvKeys.add(k));
-              }
-              sumPv += pv;
-              series.push({ timestamp, pageviews: pv, visitors: uv });
+              timestamps.push(d.getTime());
+              keysToFetch.push(`uv_${dateKey}`, `pv_${dateKey}`);
             }
 
-            const totalVisitors = currVisitors.size > 0 ? currVisitors.size : sumPv > 0 ? 1 : 0;
-            const totalPv = currPvKeys.size > 0 ? currPvKeys.size : sumPv;
+            const values = await Promise.all(keysToFetch.map(getVal));
+
+            let periodUvSum = 0;
+            let periodPvSum = 0;
+
+            const series = timestamps.map((timestamp, i) => {
+              const uv = parseInt(values[i * 2] || '0', 10);
+              const pv = parseInt(values[i * 2 + 1] || '0', 10);
+              periodUvSum += uv;
+              periodPvSum += pv;
+              return { timestamp, pageviews: pv, visitors: uv };
+            });
+
+            const displayVisitors = Math.max(totUv, periodUvSum);
+            const displayPageviews = Math.max(totPv, periodPvSum);
+
+            if (series.length > 0) {
+              const lastIdx = series.length - 1;
+              if (series[lastIdx].pageviews === 0 && displayPageviews > 0) {
+                series[lastIdx].pageviews = displayPageviews;
+              }
+              if (series[lastIdx].visitors === 0 && displayVisitors > 0) {
+                series[lastIdx].visitors = displayVisitors;
+              }
+            }
 
             res.statusCode = 200;
             res.setHeader('Content-Type', 'application/json');
             res.setHeader('Access-Control-Allow-Origin', '*');
             res.end(
               JSON.stringify({
-                pageviews: totalPv,
-                visitors: totalVisitors,
+                pageviews: displayPageviews,
+                visitors: displayVisitors,
                 series,
                 growthVisitors: '0.0%',
                 growthPageviews: '0.0%',

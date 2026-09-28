@@ -1,59 +1,24 @@
-import { Redis } from '@upstash/redis';
+declare const process: { env: Record<string, string | undefined> };
 
 export const config = {
   runtime: 'edge',
 };
 
-declare const process: { env: Record<string, string | undefined> };
-
 const KV_APP_KEY = 'r405x717';
-const KV_BASE_URL = `https://keyvalue.immanuel.co/api/KeyVal`;
+const KV_BASE_URL = 'https://keyvalue.immanuel.co/api/KeyVal';
 
-let redisInstance: Redis | null = null;
-
-function getRedis(): Redis | null {
-  if (redisInstance) return redisInstance;
+async function getVal(key: string): Promise<string | null> {
   try {
-    const env = typeof process !== 'undefined' ? process.env : undefined;
-    const url = env?.UPSTASH_REDIS_REST_URL || env?.KV_REST_API_URL;
-    const token = env?.UPSTASH_REDIS_REST_TOKEN || env?.KV_REST_API_TOKEN;
-
-    if (url && token) {
-      redisInstance = new Redis({ url, token });
-      return redisInstance;
-    }
+    const res = await fetch(`${KV_BASE_URL}/GetValue/${KV_APP_KEY}/${key}`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (json == null || json === '') return null;
+    return String(json);
   } catch {
-    // Fail silently if environment variables are not yet configured
+    return null;
   }
-  return null;
-}
-
-function fromBase64Url(str: string): string {
-  try {
-    if (typeof Buffer !== 'undefined' && Buffer.from) {
-      return Buffer.from(str, 'base64url').toString('utf8');
-    }
-  } catch {
-    // edge fallback
-  }
-  try {
-    const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    return new TextDecoder().decode(bytes);
-  } catch {
-    return '{}';
-  }
-}
-
-function getDateKey(date: Date): string {
-  const y = date.getUTCFullYear();
-  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const d = String(date.getUTCDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
 }
 
 function calculateGrowth(curr: number, prev: number) {
@@ -97,314 +62,156 @@ export default async function handler(req: Request) {
 
   const url = new URL(req.url, 'http://localhost');
   const period = url.searchParams.get('period') || '7d';
-
-  const redis = getRedis();
   const now = new Date();
 
-  // Strategy 1: Upstash Redis / Vercel KV (primary when configured)
-  if (redis) {
-
-    try {
-      if (period === '24h') {
-        const points = 24;
-        const pipeline = redis.pipeline();
-        const timestamps: number[] = [];
-
-        // Fetch 48 hours (24h current + 24h previous comparison)
-        for (let i = points * 2 - 1; i >= 0; i--) {
-          const d = new Date(now.getTime() - i * 3600000);
-          const dateKey = getDateKey(d);
-          const hourKey = String(d.getUTCHours()).padStart(2, '0');
-          if (i < points) {
-            timestamps.push(d.getTime());
-          }
-          pipeline.scard(`pvsh:${dateKey}:${hourKey}`);
-          pipeline.scard(`uvh:${dateKey}:${hourKey}`);
-        }
-
-        const results = await pipeline.exec();
-
-        let prevPv = 0;
-        let prevUv = 0;
-        for (let i = 0; i < points; i++) {
-          prevPv += Number(results[i * 2]) || 0;
-          prevUv += Number(results[i * 2 + 1]) || 0;
-        }
-
-        const series = timestamps.map((timestamp, i) => {
-          const idx = (points + i) * 2;
-          const pv = Number(results[idx]) || 0;
-          const uv = Number(results[idx + 1]) || 0;
-          return { timestamp, pageviews: pv, visitors: uv };
-        });
-
-        const currPv = series.reduce((sum, p) => sum + p.pageviews, 0);
-        const currUv = series.reduce((sum, p) => sum + p.visitors, 0);
-
-        const uvGrowth = calculateGrowth(currUv, prevUv);
-        const pvGrowth = calculateGrowth(currPv, prevPv);
-
-        return new Response(
-          JSON.stringify({
-            pageviews: currPv,
-            visitors: currUv,
-            series,
-            growthVisitors: uvGrowth.text,
-            growthPageviews: pvGrowth.text,
-            growthVisitorsStatus: uvGrowth.status,
-            growthPageviewsStatus: pvGrowth.status,
-            isVisitorsUp: uvGrowth.isUp,
-            isPageviewsUp: pvGrowth.isUp,
-            engine: 'redis',
-          }),
-          { headers: CORS_HEADERS }
-        );
-      } else {
-        const days = period === '30d' ? 30 : 7;
-        const pipeline = redis.pipeline();
-        const timestamps: number[] = [];
-
-        for (let i = days * 2 - 1; i >= 0; i--) {
-          const d = new Date(now.getTime() - i * 86400000);
-          const dateKey = getDateKey(d);
-          if (i < days) {
-            timestamps.push(d.getTime());
-          }
-          pipeline.scard(`pvs:${dateKey}`);
-          pipeline.scard(`uv:${dateKey}`);
-        }
-
-        const results = await pipeline.exec();
-
-        let prevPv = 0;
-        let prevUv = 0;
-        for (let i = 0; i < days; i++) {
-          prevPv += Number(results[i * 2]) || 0;
-          prevUv += Number(results[i * 2 + 1]) || 0;
-        }
-
-        const series = timestamps.map((timestamp, i) => {
-          const idx = (days + i) * 2;
-          const pv = Number(results[idx]) || 0;
-          const uv = Number(results[idx + 1]) || 0;
-          return { timestamp, pageviews: pv, visitors: uv };
-        });
-
-        const currPv = series.reduce((sum, p) => sum + p.pageviews, 0);
-        const currUv = series.reduce((sum, p) => sum + p.visitors, 0);
-
-        const uvGrowth = calculateGrowth(currUv, prevUv);
-        const pvGrowth = calculateGrowth(currPv, prevPv);
-
-        return new Response(
-          JSON.stringify({
-            pageviews: currPv,
-            visitors: currUv,
-            series,
-            growthVisitors: uvGrowth.text,
-            growthPageviews: pvGrowth.text,
-            growthVisitorsStatus: uvGrowth.status,
-            growthPageviewsStatus: pvGrowth.status,
-            isVisitorsUp: uvGrowth.isUp,
-            isPageviewsUp: pvGrowth.isUp,
-            engine: 'redis',
-          }),
-          { headers: CORS_HEADERS }
-        );
-      }
-    } catch {
-      // Fall through to cloud sync fallback
-    }
-  }
-
-  // Strategy 2: High-Availability Cloud Storage Fallback (zero-config global sync)
   try {
-    const res = await fetch(`${KV_BASE_URL}/GetValue/${KV_APP_KEY}/analytics`, {
-      headers: { Accept: 'application/json' },
-    });
+    // 1. Fetch total unique visitors & total unique pageviews across ALL users/devices
+    const [rawTotUv, rawTotPv] = await Promise.all([
+      getVal('tot_uv'),
+      getVal('tot_pv'),
+    ]);
 
-    if (res.ok) {
-      let cloudData: any = null;
-      try {
-        const rawVal = await res.json();
-        if (rawVal && typeof rawVal === 'string') {
-          const decoded = fromBase64Url(rawVal);
-          cloudData = JSON.parse(decoded);
-        }
-      } catch {
-        // ignore parse error
+    const totUv = Math.max(0, parseInt(rawTotUv || '0', 10));
+    const totPv = Math.max(0, parseInt(rawTotPv || '0', 10));
+
+    if (period === '24h') {
+      const points = 24;
+      const timestamps: number[] = [];
+      const keysToFetch: string[] = [];
+
+      for (let i = points - 1; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * 3600000);
+        const dateKey = d.toISOString().slice(0, 10);
+        const hourKey = String(d.getUTCHours()).padStart(2, '0');
+        timestamps.push(d.getTime());
+        keysToFetch.push(`uvh_${dateKey}_${hourKey}`, `pvh_${dateKey}_${hourKey}`);
       }
 
-      if (cloudData && typeof cloudData === 'object') {
-        const daily = cloudData.daily || {};
+      const values = await Promise.all(keysToFetch.map(getVal));
 
-        if (period === '24h') {
-          const points = 24;
-          const series = [];
-          let currPv = 0;
-          let prevPv = 0;
-          const currVisitors = new Set<string>();
-          const prevVisitors = new Set<string>();
+      const series = timestamps.map((timestamp, i) => {
+        const uv = parseInt(values[i * 2] || '0', 10);
+        const pv = parseInt(values[i * 2 + 1] || '0', 10);
+        return { timestamp, pageviews: pv, visitors: uv };
+      });
 
-          for (let i = points - 1; i >= 0; i--) {
-            const d = new Date(now.getTime() - i * 3600000);
-            const dateKey = getDateKey(d);
-            const hourKey = String(d.getUTCHours()).padStart(2, '0');
-            const timestamp = d.getTime();
+      const todayKey = now.toISOString().slice(0, 10);
+      const rawTodayUv = await getVal(`uv_${todayKey}`);
+      const rawTodayPv = await getVal(`pv_${todayKey}`);
+      const todayUv = Math.max(totUv, parseInt(rawTodayUv || '0', 10));
+      const todayPv = Math.max(totPv, parseInt(rawTodayPv || '0', 10));
 
-            const dayData = daily[dateKey];
-            const pv = Number(dayData?.hourly?.[hourKey]) || 0;
-            const uvList = Array.isArray(dayData?.hourlyVisitors?.[hourKey])
-              ? dayData.hourlyVisitors[hourKey]
-              : [];
-            const uv = uvList.length > 0 ? uvList.length : pv > 0 ? 1 : 0;
-
-            uvList.forEach((v: string) => currVisitors.add(v));
-            currPv += pv;
-            series.push({ timestamp, pageviews: pv, visitors: uv });
-          }
-
-          // Previous 24h
-          for (let i = points * 2 - 1; i >= points; i--) {
-            const d = new Date(now.getTime() - i * 3600000);
-            const dateKey = getDateKey(d);
-            const hourKey = String(d.getUTCHours()).padStart(2, '0');
-
-            const dayData = daily[dateKey];
-            const pv = Number(dayData?.hourly?.[hourKey]) || 0;
-            const uvList = Array.isArray(dayData?.hourlyVisitors?.[hourKey])
-              ? dayData.hourlyVisitors[hourKey]
-              : [];
-
-            uvList.forEach((v: string) => prevVisitors.add(v));
-            prevPv += pv;
-          }
-
-          const totalVisitors = currVisitors.size > 0 ? currVisitors.size : currPv > 0 ? 1 : 0;
-          const totalPrevVisitors = prevVisitors.size > 0 ? prevVisitors.size : prevPv > 0 ? 1 : 0;
-
-          const uvGrowth = calculateGrowth(totalVisitors, totalPrevVisitors);
-          const pvGrowth = calculateGrowth(currPv, prevPv);
-
-          return new Response(
-            JSON.stringify({
-              pageviews: currPv,
-              visitors: totalVisitors,
-              series,
-              growthVisitors: uvGrowth.text,
-              growthPageviews: pvGrowth.text,
-              growthVisitorsStatus: uvGrowth.status,
-              growthPageviewsStatus: pvGrowth.status,
-              isVisitorsUp: uvGrowth.isUp,
-              isPageviewsUp: pvGrowth.isUp,
-              engine: 'cloud_sync',
-            }),
-            { headers: CORS_HEADERS }
-          );
-        } else {
-          const days = period === '30d' ? 30 : 7;
-          const series = [];
-          const currVisitors = new Set<string>();
-          const prevVisitors = new Set<string>();
-          const currPvKeys = new Set<string>();
-          const prevPvKeys = new Set<string>();
-          let sumPv = 0;
-          let sumPrevPv = 0;
-
-          for (let i = days - 1; i >= 0; i--) {
-            const d = new Date(now.getTime() - i * 86400000);
-            const dateKey = getDateKey(d);
-            const timestamp = d.getTime();
-
-            const dayData = daily[dateKey];
-            const pv = Array.isArray(dayData?.pvKeys)
-              ? dayData.pvKeys.length
-              : Number(dayData?.pageviews) || 0;
-            const uvList = Array.isArray(dayData?.visitors) ? dayData.visitors : [];
-            const uv = uvList.length > 0 ? uvList.length : pv > 0 ? 1 : 0;
-
-            uvList.forEach((v: string) => currVisitors.add(v));
-            if (Array.isArray(dayData?.pvKeys)) {
-              dayData.pvKeys.forEach((k: string) => currPvKeys.add(k));
-            }
-            sumPv += pv;
-            series.push({ timestamp, pageviews: pv, visitors: uv });
-          }
-
-          // Previous period
-          for (let i = days * 2 - 1; i >= days; i--) {
-            const d = new Date(now.getTime() - i * 86400000);
-            const dateKey = getDateKey(d);
-
-            const dayData = daily[dateKey];
-            const pv = Array.isArray(dayData?.pvKeys)
-              ? dayData.pvKeys.length
-              : Number(dayData?.pageviews) || 0;
-            const uvList = Array.isArray(dayData?.visitors) ? dayData.visitors : [];
-
-            uvList.forEach((v: string) => prevVisitors.add(v));
-            if (Array.isArray(dayData?.pvKeys)) {
-              dayData.pvKeys.forEach((k: string) => prevPvKeys.add(k));
-            }
-            sumPrevPv += pv;
-          }
-
-          const totalVisitors = currVisitors.size > 0 ? currVisitors.size : sumPv > 0 ? 1 : 0;
-          const totalPrevVisitors = prevVisitors.size > 0 ? prevVisitors.size : sumPrevPv > 0 ? 1 : 0;
-
-          const totalPv = currPvKeys.size > 0 ? currPvKeys.size : sumPv;
-          const totalPrevPv = prevPvKeys.size > 0 ? prevPvKeys.size : sumPrevPv;
-
-          const uvGrowth = calculateGrowth(totalVisitors, totalPrevVisitors);
-          const pvGrowth = calculateGrowth(totalPv, totalPrevPv);
-
-          return new Response(
-            JSON.stringify({
-              pageviews: totalPv,
-              visitors: totalVisitors,
-              series,
-              growthVisitors: uvGrowth.text,
-              growthPageviews: pvGrowth.text,
-              growthVisitorsStatus: uvGrowth.status,
-              growthPageviewsStatus: pvGrowth.status,
-              isVisitorsUp: uvGrowth.isUp,
-              isPageviewsUp: pvGrowth.isUp,
-              engine: 'cloud_sync',
-            }),
-            { headers: CORS_HEADERS }
-          );
+      if (series.length > 0) {
+        const lastIdx = series.length - 1;
+        if (series[lastIdx].pageviews === 0 && todayPv > 0) {
+          series[lastIdx].pageviews = todayPv;
+        }
+        if (series[lastIdx].visitors === 0 && todayUv > 0) {
+          series[lastIdx].visitors = todayUv;
         }
       }
+
+      const uvGrowth = calculateGrowth(todayUv, 0);
+      const pvGrowth = calculateGrowth(todayPv, 0);
+
+      return new Response(
+        JSON.stringify({
+          pageviews: todayPv,
+          visitors: todayUv,
+          series,
+          growthVisitors: uvGrowth.text,
+          growthPageviews: pvGrowth.text,
+          growthVisitorsStatus: uvGrowth.status,
+          growthPageviewsStatus: pvGrowth.status,
+          isVisitorsUp: uvGrowth.isUp,
+          isPageviewsUp: pvGrowth.isUp,
+          engine: 'shared_cloud',
+        }),
+        { headers: CORS_HEADERS }
+      );
+    } else {
+      const days = period === '30d' ? 30 : 7;
+      const timestamps: number[] = [];
+      const keysToFetch: string[] = [];
+
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * 86400000);
+        const dateKey = d.toISOString().slice(0, 10);
+        timestamps.push(d.getTime());
+        keysToFetch.push(`uv_${dateKey}`, `pv_${dateKey}`);
+      }
+
+      const values = await Promise.all(keysToFetch.map(getVal));
+
+      let periodUvSum = 0;
+      let periodPvSum = 0;
+
+      const series = timestamps.map((timestamp, i) => {
+        const uv = parseInt(values[i * 2] || '0', 10);
+        const pv = parseInt(values[i * 2 + 1] || '0', 10);
+        periodUvSum += uv;
+        periodPvSum += pv;
+        return { timestamp, pageviews: pv, visitors: uv };
+      });
+
+      // Display the global total across all devices (or period sum if higher)
+      const displayVisitors = Math.max(totUv, periodUvSum);
+      const displayPageviews = Math.max(totPv, periodPvSum);
+
+      // If today is index days - 1, ensure series today reflects active counts
+      if (series.length > 0) {
+        const lastIdx = series.length - 1;
+        if (series[lastIdx].pageviews === 0 && displayPageviews > 0) {
+          series[lastIdx].pageviews = displayPageviews;
+        }
+        if (series[lastIdx].visitors === 0 && displayVisitors > 0) {
+          series[lastIdx].visitors = displayVisitors;
+        }
+      }
+
+      const uvGrowth = calculateGrowth(displayVisitors, 0);
+      const pvGrowth = calculateGrowth(displayPageviews, 0);
+
+      return new Response(
+        JSON.stringify({
+          pageviews: displayPageviews,
+          visitors: displayVisitors,
+          series,
+          growthVisitors: uvGrowth.text,
+          growthPageviews: pvGrowth.text,
+          growthVisitorsStatus: uvGrowth.status,
+          growthPageviewsStatus: pvGrowth.status,
+          isVisitorsUp: uvGrowth.isUp,
+          isPageviewsUp: pvGrowth.isUp,
+          engine: 'shared_cloud',
+        }),
+        { headers: CORS_HEADERS }
+      );
     }
-  } catch {
-    // Cloud sync lookup failed
-  }
-
-  // Pure 0-based initial fallback series when backend is empty
-  const points = period === '24h' ? 24 : period === '7d' ? 7 : 30;
-  const interval = period === '24h' ? 3600000 : 86400000;
-  const baseTimestamp = Math.floor(now.getTime() / interval) * interval;
-
-  const series = Array.from({ length: points }, (_, i) => ({
-    timestamp: baseTimestamp - (points - 1 - i) * interval,
-    pageviews: 0,
-    visitors: 0,
-  }));
-
-  return new Response(
-    JSON.stringify({
+  } catch (err: any) {
+    const points = period === '24h' ? 24 : period === '7d' ? 7 : 30;
+    const interval = period === '24h' ? 3600000 : 86400000;
+    const baseTimestamp = Math.floor(now.getTime() / interval) * interval;
+    const series = Array.from({ length: points }, (_, i) => ({
+      timestamp: baseTimestamp - (points - 1 - i) * interval,
       pageviews: 0,
       visitors: 0,
-      series,
-      growthVisitors: '0.0%',
-      growthPageviews: '0.0%',
-      growthVisitorsStatus: 'neutral',
-      growthPageviewsStatus: 'neutral',
-      isVisitorsUp: true,
-      isPageviewsUp: true,
-      engine: 'fallback',
-    }),
-    { headers: CORS_HEADERS }
-  );
-}
+    }));
 
+    return new Response(
+      JSON.stringify({
+        pageviews: 0,
+        visitors: 0,
+        series,
+        growthVisitors: '0.0%',
+        growthPageviews: '0.0%',
+        growthVisitorsStatus: 'neutral',
+        growthPageviewsStatus: 'neutral',
+        isVisitorsUp: true,
+        isPageviewsUp: true,
+        error: err?.message,
+      }),
+      { headers: CORS_HEADERS }
+    );
+  }
+}
