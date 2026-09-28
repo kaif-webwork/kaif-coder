@@ -4,6 +4,43 @@ import react from '@vitejs/plugin-react';
 const KV_APP_KEY = 'r405x717';
 const KV_BASE_URL = 'https://keyvalue.immanuel.co/api/KeyVal';
 
+function toBase64Url(str: string): string {
+  try {
+    if (typeof Buffer !== 'undefined' && Buffer.from) {
+      return Buffer.from(str).toString('base64url');
+    }
+  } catch {}
+  try {
+    const bytes = new TextEncoder().encode(str);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  } catch {
+    return '';
+  }
+}
+
+function fromBase64Url(str: string): string {
+  try {
+    if (typeof Buffer !== 'undefined' && Buffer.from) {
+      return Buffer.from(str, 'base64url').toString('utf8');
+    }
+  } catch {}
+  try {
+    const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new TextDecoder().decode(bytes);
+  } catch {
+    return '{}';
+  }
+}
+
 function localAnalyticsPlugin(): Plugin {
   return {
     name: 'local-analytics-api-plugin',
@@ -53,7 +90,7 @@ function localAnalyticsPlugin(): Plugin {
                   try {
                     const rawVal = await getRes.json();
                     if (rawVal && typeof rawVal === 'string') {
-                      const decoded = Buffer.from(rawVal, 'base64url').toString('utf8');
+                      const decoded = fromBase64Url(rawVal);
                       currentData = JSON.parse(decoded);
                     }
                   } catch {
@@ -121,7 +158,7 @@ function localAnalyticsPlugin(): Plugin {
                 }
 
                 if (changed) {
-                  const encoded = Buffer.from(JSON.stringify(currentData)).toString('base64url');
+                  const encoded = toBase64Url(JSON.stringify(currentData));
                   await fetch(`${KV_BASE_URL}/UpdateValue/${KV_APP_KEY}/analytics/${encoded}`, {
                     method: 'POST',
                   });
@@ -168,7 +205,7 @@ function localAnalyticsPlugin(): Plugin {
               if (cloudRes.ok) {
                 const rawVal = await cloudRes.json();
                 if (rawVal && typeof rawVal === 'string') {
-                  const decoded = Buffer.from(rawVal, 'base64url').toString('utf8');
+                  const decoded = fromBase64Url(rawVal);
                   cloudData = JSON.parse(decoded);
                 }
               }

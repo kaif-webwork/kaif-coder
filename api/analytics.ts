@@ -30,15 +30,20 @@ function getRedis(): Redis | null {
 
 function fromBase64Url(str: string): string {
   try {
-    if (typeof Buffer !== 'undefined') {
+    if (typeof Buffer !== 'undefined' && Buffer.from) {
       return Buffer.from(str, 'base64url').toString('utf8');
     }
   } catch {
-    // browser/edge fallback
+    // edge fallback
   }
   try {
     const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
-    return decodeURIComponent(escape(atob(base64)));
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new TextDecoder().decode(bytes);
   } catch {
     return '{}';
   }
