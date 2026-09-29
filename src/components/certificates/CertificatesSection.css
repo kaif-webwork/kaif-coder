@@ -34,7 +34,7 @@
 /* Main Clean Showcase Card */
 .cert-clean-card {
   background: #0b0d0e;
-  border: 1px dashed #383838;
+  border: 1px dotted #383838;
   border-radius: 0px;
   padding: 24px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -57,7 +57,7 @@
   flex-wrap: wrap;
   gap: 10px;
   padding-bottom: 14px;
-  border-bottom: 1px dashed #24262d;
+  border-bottom: 1px dotted #24262d;
   margin-bottom: 16px;
   width: 100%;
   box-sizing: border-box;
@@ -234,7 +234,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 10px 14px;
   background: #08090c;
-  border: 1px dashed #24262f;
+  border: 1px dotted #24262f;
   border-radius: 4px;
   padding: 12px 14px;
   margin: 10px 0 16px 0;
@@ -330,8 +330,9 @@
 .cert-actions-cluster {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 4px;
+  justify-content: center;
+  gap: 12px;
+  margin: 12px auto 4px auto;
   flex-wrap: wrap;
   width: 100%;
   box-sizing: border-box;
@@ -407,7 +408,7 @@
 .cert-modules-container {
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px dashed #24262d;
+  border-top: 1px dotted #24262d;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -448,13 +449,18 @@
 
 .cert-category-block {
   background: #08090b;
-  border: 1px solid #1c1e24;
+  border: 1px dotted #383838;
   border-radius: 4px;
   padding: 12px 16px;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.cert-category-block:hover {
+  border-color: #555555;
 }
 
 .cert-category-label {
@@ -466,6 +472,15 @@
   text-transform: uppercase;
   letter-spacing: 0.3px;
   word-break: break-word;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.cert-category-icon {
+  font-size: 0.95rem;
+  color: #94a3b8;
+  flex-shrink: 0;
 }
 
 .cert-pills-wrap {
@@ -543,6 +558,7 @@
     font-size: 0.68rem;
     padding: 2.5px 7px;
   }
+
 
   .cert-main-title {
     font-size: 1.15rem;
@@ -731,7 +747,7 @@ button.cert-large-preview-link {
 
 .cert-lightbox-content {
   background: #0b0d0e;
-  border: 1px dashed #444855;
+  border: 1px dotted #444855;
   border-radius: 6px;
   max-width: 900px;
   width: 100%;
@@ -763,7 +779,7 @@ button.cert-large-preview-link {
   justify-content: space-between;
   padding: 10px 14px;
   background: #0e1013;
-  border-bottom: 1px dashed #24262f;
+  border-bottom: 1px dotted #24262f;
   gap: 12px;
   width: 100%;
   box-sizing: border-box;

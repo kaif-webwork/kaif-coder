@@ -9,6 +9,12 @@ import {
   HiOutlineClipboardDocumentCheck,
   HiOutlineSparkles,
   HiOutlineXMark,
+  HiOutlineGlobeAlt,
+  HiOutlineCloud,
+  HiOutlineCommandLine,
+  HiOutlinePaintBrush,
+  HiOutlineFilm,
+  HiOutlineCpuChip,
 } from 'react-icons/hi2';
 import { RiVerifiedBadgeFill } from 'react-icons/ri';
 import SectionTitle from '../sectionTitle/SectionTitle';
@@ -20,6 +26,17 @@ interface PreviewModalData {
   src: string;
   title: string;
 }
+
+const getCategoryIcon = (title: string) => {
+  const lower = title.toLowerCase();
+  if (lower.includes('mern') || lower.includes('web')) return <HiOutlineGlobeAlt className="cert-category-icon" />;
+  if (lower.includes('devops') || lower.includes('cloud')) return <HiOutlineCloud className="cert-category-icon" />;
+  if (lower.includes('ai') || lower.includes('agent')) return <HiOutlineCpuChip className="cert-category-icon" />;
+  if (lower.includes('dsa') || lower.includes('algorithm')) return <HiOutlineCommandLine className="cert-category-icon" />;
+  if (lower.includes('graphic') || lower.includes('ui/ux') || lower.includes('design')) return <HiOutlinePaintBrush className="cert-category-icon" />;
+  if (lower.includes('animation') || lower.includes('video') || lower.includes('audio')) return <HiOutlineFilm className="cert-category-icon" />;
+  return <HiOutlineSparkles className="cert-category-icon" />;
+};
 
 export default function CertificatesSection() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -132,6 +149,20 @@ export default function CertificatesSection() {
                 </div>
               )}
 
+              {cert.programType && (
+                <div className="cert-spec-cell">
+                  <span className="spec-label">Program Type</span>
+                  <span className="spec-value">{cert.programType}</span>
+                </div>
+              )}
+
+              {cert.specialization && (
+                <div className="cert-spec-cell">
+                  <span className="spec-label">Specialization</span>
+                  <span className="spec-value">{cert.specialization}</span>
+                </div>
+              )}
+
               {cert.instructor && (
                 <div className="cert-spec-cell">
                   <span className="spec-label">Instructor</span>
@@ -146,7 +177,9 @@ export default function CertificatesSection() {
 
               {cert.location && (
                 <div className="cert-spec-cell">
-                  <span className="spec-label">Training Center</span>
+                  <span className="spec-label">
+                    {cert.id === 'sheryians-ai-cohort' ? 'Learning Format' : 'Training Center'}
+                  </span>
                   <span className="spec-value">{cert.location}</span>
                 </div>
               )}
@@ -218,7 +251,10 @@ export default function CertificatesSection() {
                 <div className="cert-categories-grid">
                   {cert.moduleCategories.map((cat) => (
                     <div key={cat.title} className="cert-category-block">
-                      <h4 className="cert-category-label">{cat.title}</h4>
+                      <h4 className="cert-category-label">
+                        {getCategoryIcon(cat.title)}
+                        <span>{cat.title}</span>
+                      </h4>
                       <div className="cert-pills-wrap">
                         {cat.skills.map((skill) => (
                           <span key={skill} className="cert-skill-pill">
