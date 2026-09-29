@@ -415,28 +415,13 @@
   overflow: hidden;
 }
 
-.cert-modules-title-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 14px;
-  width: 100%;
-  min-width: 0;
-}
-
-.modules-sparkle {
-  font-size: 1.1rem;
-  flex-shrink: 0;
-}
-
 .cert-modules-title {
   font-family: 'Figtree', sans-serif;
-  font-size: 0.94rem;
-  font-weight: 700;
-  color: #ffffff;
-  margin: 0;
-  min-width: 0;
-  word-break: break-word;
+  font-size: 0.90rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin: 0 0 12px 0;
+  letter-spacing: 0.2px;
 }
 
 .cert-categories-grid {

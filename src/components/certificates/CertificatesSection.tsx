@@ -7,7 +7,6 @@ import {
   HiOutlineCheckBadge,
   HiOutlineEye,
   HiOutlineClipboardDocumentCheck,
-  HiOutlineSparkles,
   HiOutlineXMark,
   HiOutlineGlobeAlt,
   HiOutlineCloud,
@@ -35,7 +34,7 @@ const getCategoryIcon = (title: string) => {
   if (lower.includes('dsa') || lower.includes('algorithm')) return <HiOutlineCommandLine className="cert-category-icon" />;
   if (lower.includes('graphic') || lower.includes('ui/ux') || lower.includes('design')) return <HiOutlinePaintBrush className="cert-category-icon" />;
   if (lower.includes('animation') || lower.includes('video') || lower.includes('audio')) return <HiOutlineFilm className="cert-category-icon" />;
-  return <HiOutlineSparkles className="cert-category-icon" />;
+  return <HiOutlineCommandLine className="cert-category-icon" />;
 };
 
 export default function CertificatesSection() {
@@ -237,15 +236,7 @@ export default function CertificatesSection() {
 
             {/* Clean Structured Modules / Skills Section */}
             <div className="cert-modules-container">
-              <div className="cert-modules-title-row">
-                <HiOutlineSparkles
-                  className="modules-sparkle"
-                  style={{ color: cert.accentColor }}
-                />
-                <h3 className="cert-modules-title">
-                  Curriculum &amp; Skills Covered ({cert.skills.length} Competencies)
-                </h3>
-              </div>
+              <h3 className="cert-modules-title">Skills &amp; Tools</h3>
 
               {cert.moduleCategories && cert.moduleCategories.length > 0 ? (
                 <div className="cert-categories-grid">
