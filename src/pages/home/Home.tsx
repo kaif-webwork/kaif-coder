@@ -10,10 +10,12 @@ import Footer from '../../components/footer/Footer';
 
 export default function Home() {
   useSEO({
-    title: 'Mohd Kaif | Full Stack Developer | Portfolio',
+    title: 'Mohd Kaif (kaifcoder) | Full Stack Developer & AI Engineer',
     description:
-      'Mohd Kaif (kaifcoder) is a Full Stack Developer based in Delhi, India. Creator of AdZero, building high-performance web & mobile applications with React, TypeScript, Node.js, and Python.',
+      'Official portfolio of Mohd Kaif (kaifcoder). Full Stack Developer & AI Engineer based in Delhi, India. Creator of AdZero, building high-performance web applications with React, TypeScript, Node.js, Python, Docker, and Generative AI.',
     canonical: 'https://www.kaifcoder.in/',
+    keywords:
+      'Mohd Kaif, kaifcoder, kaif coder, kaif, kaifcodr, mohd kaif portfolio, kaif coder portfolio, mohd kaif developer, kaif developer, full stack developer delhi, full stack developer india, mohd kaif full stack developer, mohd kaif ai engineer, adzero, sheryians mohd kaif, react developer, node.js developer, python developer, kaifcoder.in, www.kaifcoder.in',
   });
 
   return (

@@ -9,10 +9,12 @@ import './ResumeLayout.css';
 
 export default function ResumeLayout() {
   useSEO({
-    title: 'Resume | Mohd Kaif - Full Stack Developer • kaifcoder.in',
+    title: 'Resume | Mohd Kaif (kaifcoder) - Full Stack Developer & AI Engineer',
     description:
-      'Mohd Kaif (kaifcoder / kaif coder) Full Stack Developer resume. Skills in React, TypeScript, Node.js, Python, MongoDB, MySQL, and scalable systems.',
+      'Mohd Kaif (kaifcoder / kaif coder) Full Stack Developer resume. Skills in React, TypeScript, Node.js, Python, MongoDB, Redis, Docker, and AI systems.',
     canonical: 'https://www.kaifcoder.in/resume',
+    keywords:
+      'Mohd Kaif resume, kaif coder resume, Mohd Kaif CV, full stack developer resume, kaifcoder resume, Mohd Kaif developer profile',
   });
 
   return (
