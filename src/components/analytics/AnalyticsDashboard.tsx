@@ -22,9 +22,7 @@ export default function AnalyticsDashboard() {
       {/* Top 2 Stat Cards */}
       <div className="analytics-stats-row">
         <div className="analytics-stat-card">
-          <div className="analytics-stat-label">
-            Visitors {period === '24h' ? '(24H)' : period === '7d' ? '(7D)' : '(30D)'}
-          </div>
+          <div className="analytics-stat-label">Visitors</div>
           <div className="analytics-stat-value">
             {loading && !data ? '...' : visitorsCount.toLocaleString()}
           </div>
@@ -34,9 +32,7 @@ export default function AnalyticsDashboard() {
         </div>
 
         <div className="analytics-stat-card">
-          <div className="analytics-stat-label">
-            Page Views {period === '24h' ? '(24H)' : period === '7d' ? '(7D)' : '(30D)'}
-          </div>
+          <div className="analytics-stat-label">Page Views</div>
           <div className="analytics-stat-value">
             {loading && !data ? '...' : pageviewsCount.toLocaleString()}
           </div>
@@ -45,15 +41,6 @@ export default function AnalyticsDashboard() {
           </div>
         </div>
       </div>
-
-      {data?.totalLifetimeVisitors !== undefined && (
-        <div className="analytics-lifetime-bar">
-          <span className="analytics-lifetime-dot" />
-          <span className="analytics-lifetime-text">
-            All-Time Total: <strong>{data.totalLifetimeVisitors.toLocaleString()}</strong> Visitors • <strong>{(data.totalLifetimePageviews ?? 0).toLocaleString()}</strong> Page Views
-          </span>
-        </div>
-      )}
 
       {/* Chart Box */}
       <div className="analytics-chart-box">
