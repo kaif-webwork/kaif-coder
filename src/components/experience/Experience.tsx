@@ -11,7 +11,7 @@ const experiences = [
     dates: 'Oct 2025 - Present',
     status: 'present',
     statusText: 'Active',
-    logoUrl: 'https://github.com/kaif-webwork.png',
+    logoUrl: '/images/profile/github-avatar.png',
     link: 'https://github.com/kaif-webwork',
     description: [
       'Building scalable full-stack web applications and modern developer utilities',

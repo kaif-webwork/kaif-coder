@@ -321,11 +321,14 @@ function localAnalyticsPlugin(): Plugin {
               });
 
               const earlier12 = series.slice(0, 12);
+              const recent12 = series.slice(12, 24);
               const earlierUv = earlier12.reduce((acc, p) => acc + p.visitors, 0);
+              const recentUv = recent12.reduce((acc, p) => acc + p.visitors, 0);
               const earlierPv = earlier12.reduce((acc, p) => acc + p.pageviews, 0);
+              const recentPv = recent12.reduce((acc, p) => acc + p.pageviews, 0);
 
-              const uvGrowth = computeAccurateGrowth(totUv, earlierUv, series, 'visitors');
-              const pvGrowth = computeAccurateGrowth(totPv, earlierPv, series, 'pageviews');
+              const uvGrowth = computeAccurateGrowth(recentUv, earlierUv, series, 'visitors');
+              const pvGrowth = computeAccurateGrowth(recentPv, earlierPv, series, 'pageviews');
 
               const result = {
                 pageviews: totPv,
@@ -388,11 +391,14 @@ function localAnalyticsPlugin(): Plugin {
 
             const half = Math.floor(series.length / 2);
             const earlierHalf = series.slice(0, half);
+            const recentHalf = series.slice(half);
             const earlierUv = earlierHalf.reduce((acc, p) => acc + p.visitors, 0);
+            const recentUv = recentHalf.reduce((acc, p) => acc + p.visitors, 0);
             const earlierPv = earlierHalf.reduce((acc, p) => acc + p.pageviews, 0);
+            const recentPv = recentHalf.reduce((acc, p) => acc + p.pageviews, 0);
 
-            const uvGrowth = computeAccurateGrowth(displayVisitors, earlierUv, series, 'visitors');
-            const pvGrowth = computeAccurateGrowth(displayPageviews, earlierPv, series, 'pageviews');
+            const uvGrowth = computeAccurateGrowth(recentUv, earlierUv, series, 'visitors');
+            const pvGrowth = computeAccurateGrowth(recentPv, earlierPv, series, 'pageviews');
 
             const result = {
               pageviews: displayPageviews,
@@ -427,6 +433,7 @@ function localAnalyticsPlugin(): Plugin {
 export default defineConfig({
   plugins: [react(), localAnalyticsPlugin()],
   server: {
+    host: true,
     port: 3000,
     open: true,
   },
@@ -435,5 +442,19 @@ export default defineConfig({
     sourcemap: false,
     target: 'es2020',
     cssTarget: ['chrome80', 'safari14', 'firefox80'],
+    chunkSizeWarningLimit: 650,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/echarts')) {
+            return 'vendor-echarts';
+          }
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router')) {
+            return 'vendor-react';
+          }
+        },
+      },
+    },
   },
 });
+

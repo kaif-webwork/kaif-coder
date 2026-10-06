@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router';
 import { recordRealPageView, getVisitorId } from '../utils/realAnalyticsTracker';
 
-const DEVICE_ROUTES_KEY = 'kaif_device_visited_routes_v4';
 const DEVICE_SEEN_KEY = 'kaif_device_seen_v4';
 
 /**

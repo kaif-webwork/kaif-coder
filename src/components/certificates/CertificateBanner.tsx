@@ -12,7 +12,8 @@ export default function CertificateBanner({ cert }: CertificateBannerProps) {
           src={cert.image}
           alt={cert.title}
           className="cert-real-banner-img"
-          loading="lazy"
+          loading="eager"
+          decoding="async"
         />
       </div>
     );

@@ -1,5 +1,3 @@
-declare const process: { env: Record<string, string | undefined> };
-
 export const config = {
   runtime: 'edge',
 };
@@ -61,12 +59,30 @@ function hashString(str: string): string {
   return Math.abs(hash >>> 0).toString(36);
 }
 
+// In-memory edge rate limiting: prevents abuse and spam attacks (IP -> count)
+const ipRateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(ip: string, maxRequests = 40, windowMs = 60000): boolean {
+  const now = Date.now();
+  const entry = ipRateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    ipRateLimitMap.set(ip, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  if (entry.count >= maxRequests) {
+    return false;
+  }
+  entry.count += 1;
+  return true;
+}
+
 const CORS_HEADERS = {
   'content-type': 'application/json',
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET, POST, OPTIONS',
   'access-control-allow-headers': 'Content-Type, Authorization',
   'x-content-type-options': 'nosniff',
+  'x-frame-options': 'DENY',
   'cache-control': 'no-store, no-cache, must-revalidate',
 };
 
@@ -83,6 +99,25 @@ export default async function handler(req: Request) {
   }
 
   try {
+    // 1. Enforce payload size constraint (prevents payload flood attacks)
+    const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
+    if (contentLength > 8192) {
+      return new Response(JSON.stringify({ error: 'Payload too large' }), {
+        status: 413,
+        headers: CORS_HEADERS,
+      });
+    }
+
+    // 2. IP extraction & edge rate limiting
+    const forwarded = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip');
+    const ip = forwarded ? forwarded.split(',')[0].trim().slice(0, 45) : '127.0.0.1';
+    if (!checkRateLimit(ip, 40, 60000)) {
+      return new Response(JSON.stringify({ ok: false, error: 'Rate limit exceeded' }), {
+        status: 429,
+        headers: CORS_HEADERS,
+      });
+    }
+
     let body: { path?: string; ref?: string; visitorId?: string } = {};
     try {
       body = (await req.json()) as typeof body;
@@ -94,14 +129,18 @@ export default async function handler(req: Request) {
     const today = now.toISOString().slice(0, 10);
     const hour = String(now.getUTCHours()).padStart(2, '0');
 
-    const forwarded = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip');
-    const ip = forwarded ? forwarded.split(',')[0].trim() : '127.0.0.1';
-    const clientVisitorId = body.visitorId || 'v_anon';
+    // 3. Strict Input Sanitization & length truncation
+    const rawVisitorId = typeof body.visitorId === 'string' ? body.visitorId : '';
+    const clientVisitorId = rawVisitorId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64) || 'v_anon';
+
+    const rawPath = typeof body.path === 'string' ? body.path : '/';
+    const cleanPath = rawPath.split('?')[0].split('#')[0].slice(0, 100);
+    const path = cleanPath.startsWith('/') ? cleanPath.replace(/[^a-zA-Z0-9/\-_]/g, '') : '/';
 
     // Unique per-device hash: persistent clientVisitorId across networks, or IP fallback
     const visitorHash = hashString(clientVisitorId !== 'v_anon' ? clientVisitorId : `anon_${ip}`);
-    const path = body.path || '/';
     const pvHash = hashString(`${visitorHash}_${path}`);
+
 
     // Deduplication keys
     const devEverKey = `dev_${visitorHash}`;

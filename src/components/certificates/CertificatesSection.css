@@ -955,3 +955,29 @@ button.cert-large-preview-link {
     white-space: nowrap;
   }
 }
+
+/* Certificate Banner Image Fix */
+.cert-img-banner-wrap {
+  width: 250px;
+  aspect-ratio: 16 / 10;
+  position: relative;
+  overflow: hidden;
+  background: #08090a;
+  border-radius: 4px;
+}
+
+.cert-real-banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+@media (max-width: 680px) {
+  .cert-img-banner-wrap {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    height: auto;
+  }
+}

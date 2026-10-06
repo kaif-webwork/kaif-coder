@@ -24,6 +24,10 @@ export default class ErrorBoundary extends Component<Props, State> {
     console.error('ErrorBoundary caught an unhandled error:', error, errorInfo);
   }
 
+  private handleReset = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
   private handleReload = () => {
     window.location.reload();
   };
@@ -87,7 +91,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
               <button
-                onClick={this.handleReload}
+                onClick={this.handleReset}
                 style={{
                   padding: '0.5rem 1.25rem',
                   borderRadius: '8px',
@@ -100,10 +104,10 @@ export default class ErrorBoundary extends Component<Props, State> {
                   fontFamily: 'Figtree, sans-serif',
                 }}
               >
-                Reload
+                Try Again
               </button>
               <button
-                onClick={this.handleGoHome}
+                onClick={this.handleReload}
                 style={{
                   padding: '0.5rem 1.25rem',
                   borderRadius: '8px',
@@ -112,6 +116,22 @@ export default class ErrorBoundary extends Component<Props, State> {
                   fontWeight: 500,
                   fontSize: '0.875rem',
                   border: '1px solid #3f3f46',
+                  cursor: 'pointer',
+                  fontFamily: 'Figtree, sans-serif',
+                }}
+              >
+                Reload
+              </button>
+              <button
+                onClick={this.handleGoHome}
+                style={{
+                  padding: '0.5rem 1.25rem',
+                  borderRadius: '8px',
+                  background: '#18191d',
+                  color: '#a1a1aa',
+                  fontWeight: 500,
+                  fontSize: '0.875rem',
+                  border: '1px solid #27272a',
                   cursor: 'pointer',
                   fontFamily: 'Figtree, sans-serif',
                 }}

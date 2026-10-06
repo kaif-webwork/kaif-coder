@@ -27,14 +27,14 @@ const carouselSlides = [
   {
     id: 1,
     title: 'Launch Screen • AdZero - NO ADS. JUST WHAT YOU LOVE.',
-    src: '/images/projects/adzero-splash.png',
+    src: '/images/projects/adzero-splash.jpg',
     type: 'portrait',
     caption: 'Official Splash Screen & Branding',
   },
   {
     id: 2,
     title: 'Home Feed • Smart Categories & Curated Streaming',
-    src: '/images/projects/adzero-home.png',
+    src: '/images/projects/adzero-home.jpg',
     type: 'portrait',
     caption: 'Home Screen with Categories',
   },
@@ -48,7 +48,7 @@ const carouselSlides = [
   {
     id: 4,
     title: 'Library & Settings • Anonymous, Private & SponsorBlock',
-    src: '/images/projects/adzero-library.png',
+    src: '/images/projects/adzero-library.jpg',
     type: 'portrait',
     caption: 'Library, History & AdBlock Settings',
   },

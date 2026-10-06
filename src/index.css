@@ -8,9 +8,14 @@
 }
 
 html {
-  scroll-behavior: smooth;
   touch-action: pan-y pinch-zoom;
   -webkit-tap-highlight-color: transparent;
+}
+
+html.lenis,
+html.lenis body {
+  height: auto;
+  scroll-behavior: auto !important;
 }
 
 body {

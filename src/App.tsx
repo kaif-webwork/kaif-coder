@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { Analytics } from '@vercel/analytics/react';
 import ScrollToTop from './components/ScrollToTop';
+import SmoothScroll from './components/SmoothScroll';
 import Navbar from './components/navbar/Navbar';
 import ClickSpark from './components/ClickSpark';
 import Loading from './components/loading/Loading';
@@ -46,6 +47,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
+        <SmoothScroll />
         <PageTracker />
         <ScrollToTop />
         <Navbar />

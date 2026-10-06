@@ -1,5 +1,3 @@
-declare const process: { env: Record<string, string | undefined> };
-
 export const config = {
   runtime: 'edge',
 };
@@ -129,8 +127,26 @@ const CORS_HEADERS = {
   'access-control-allow-methods': 'GET, POST, OPTIONS',
   'access-control-allow-headers': 'Content-Type, Authorization',
   'x-content-type-options': 'nosniff',
+  'x-frame-options': 'DENY',
   'cache-control': 'public, s-maxage=15, stale-while-revalidate=45',
 };
+
+// In-memory rate limiting map for analytics reads (IP -> count)
+const analyticsRateLimit = new Map<string, { count: number; resetAt: number }>();
+
+function checkAnalyticsRateLimit(ip: string, maxRequests = 60, windowMs = 60000): boolean {
+  const now = Date.now();
+  const entry = analyticsRateLimit.get(ip);
+  if (!entry || now > entry.resetAt) {
+    analyticsRateLimit.set(ip, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  if (entry.count >= maxRequests) {
+    return false;
+  }
+  entry.count += 1;
+  return true;
+}
 
 export default async function handler(req: Request) {
   if (req.method === 'OPTIONS') {
@@ -140,8 +156,20 @@ export default async function handler(req: Request) {
     });
   }
 
+  // Rate limit protection
+  const forwarded = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip');
+  const ip = forwarded ? forwarded.split(',')[0].trim().slice(0, 45) : '127.0.0.1';
+  if (!checkAnalyticsRateLimit(ip, 80, 60000)) {
+    return new Response(JSON.stringify({ error: 'Too many requests' }), {
+      status: 429,
+      headers: CORS_HEADERS,
+    });
+  }
+
   const url = new URL(req.url, 'http://localhost');
-  const period = url.searchParams.get('period') || '7d';
+  const rawPeriod = url.searchParams.get('period');
+  // Strict period validation (prevents key injection or unexpected lookups)
+  const period: '24h' | '7d' | '30d' = rawPeriod === '24h' || rawPeriod === '30d' ? rawPeriod : '7d';
   const now = new Date();
 
   // 0. Serve from fast in-memory cache if available (0ms response, zero KV load)
@@ -151,6 +179,7 @@ export default async function handler(req: Request) {
       headers: CORS_HEADERS,
     });
   }
+
 
   try {
     // 1. Fetch total unique visitors & total unique pageviews across ALL users/devices
@@ -207,8 +236,8 @@ export default async function handler(req: Request) {
       const earlierPv = earlier12.reduce((acc, p) => acc + p.pageviews, 0);
       const recentPv = recent12.reduce((acc, p) => acc + p.pageviews, 0);
 
-      const uvGrowth = computeGrowth(todayUv, earlierUv, series, 'visitors');
-      const pvGrowth = computeGrowth(todayPv, earlierPv, series, 'pageviews');
+      const uvGrowth = computeGrowth(recentUv, earlierUv, series, 'visitors');
+      const pvGrowth = computeGrowth(recentPv, earlierPv, series, 'pageviews');
 
       const result = {
         pageviews: todayPv,
@@ -276,8 +305,8 @@ export default async function handler(req: Request) {
       const earlierPv = earlierHalf.reduce((acc, p) => acc + p.pageviews, 0);
       const recentPv = recentHalf.reduce((acc, p) => acc + p.pageviews, 0);
 
-      const uvGrowth = computeGrowth(displayVisitors, earlierUv, series, 'visitors');
-      const pvGrowth = computeGrowth(displayPageviews, earlierPv, series, 'pageviews');
+      const uvGrowth = computeGrowth(recentUv, earlierUv, series, 'visitors');
+      const pvGrowth = computeGrowth(recentPv, earlierPv, series, 'pageviews');
 
       const result = {
         pageviews: displayPageviews,

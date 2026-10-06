@@ -51,15 +51,13 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
   }, []);
 
   // 1. Instantaneous 0ms switch when clicking 24H, 7D, or 30D tabs
-  useEffect(() => {
+  const [prevPeriod, setPrevPeriod] = useState(period);
+  if (prevPeriod !== period) {
+    setPrevPeriod(period);
     const cached = getCachedData(period);
-    if (cached) {
-      setData(cached);
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
-  }, [period]);
+    setData(cached);
+    setLoading(!cached);
+  }
 
   // 2. Prefetch all 3 periods in the background on mount for ultra-fast tab switches
   useEffect(() => {
@@ -140,7 +138,7 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
 
       // Only show loading if we don't even have cached data
       const cached = getCachedData(period);
-      if (!cached && !data) {
+      if (!cached) {
         setLoading(true);
       }
 

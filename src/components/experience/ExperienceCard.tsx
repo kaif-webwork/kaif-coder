@@ -34,6 +34,8 @@ export default function ExperienceCard({
             <img
               src={logoUrl}
               alt={company}
+              loading="lazy"
+              decoding="async"
               onError={(e) => {
                 const target = e.target as HTMLElement;
                 target.style.display = 'none';

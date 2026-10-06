@@ -49,6 +49,10 @@
   user-select: none;
 }
 
+.hero-avatar.hero-avatar-img {
+  background: #ffffff;
+}
+
 .hero-avatar.hero-avatar-qr {
   background: #ffffff;
   padding: 8px;

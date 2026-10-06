@@ -62,6 +62,7 @@ export default function HeroSection() {
                 alt="Mohd Kaif"
                 className="hero-avatar hero-avatar-img"
                 loading="eager"
+                decoding="async"
               />
             }
             secondContent={
@@ -70,6 +71,7 @@ export default function HeroSection() {
                 alt="Mohd Kaif QR Code"
                 className="hero-avatar hero-avatar-qr"
                 loading="eager"
+                decoding="async"
               />
             }
             gridSize={12}

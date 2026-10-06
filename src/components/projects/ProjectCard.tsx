@@ -20,7 +20,7 @@ export default function ProjectCard({
   return (
     <div className="project-card">
       <div className="project-banner-wrapper">
-        <img src={banner} alt={name} className="project-banner" loading="lazy" />
+        <img src={banner} alt={name} className="project-banner" loading="eager" decoding="async" />
         {badgeLeft && <span className="project-banner-badge-left">{badgeLeft}</span>}
         {badgeRight && <span className="project-banner-badge-right">{badgeRight}</span>}
       </div>
