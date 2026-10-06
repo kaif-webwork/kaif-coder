@@ -28,7 +28,7 @@ async function getVal(key: string): Promise<string | null> {
     }
     const json = await res.json();
     const val = json == null || json === '' ? null : String(json);
-    kvTrackCache.set(key, { val, exp: now + 30000 });
+    kvTrackCache.set(key, { val, exp: now + 15000 });
     return val;
   } catch {
     kvTrackCache.set(key, { val: null, exp: now + 5000 });
@@ -38,7 +38,7 @@ async function getVal(key: string): Promise<string | null> {
 
 async function setVal(key: string, val: string | number): Promise<boolean> {
   const strVal = String(val);
-  kvTrackCache.set(key, { val: strVal, exp: Date.now() + 30000 });
+  kvTrackCache.set(key, { val: strVal, exp: Date.now() + 15000 });
   try {
     const res = await fetch(
       `${KV_BASE_URL}/UpdateValue/${KV_APP_KEY}/${key}/${encodeURIComponent(strVal)}`,
@@ -62,7 +62,7 @@ function hashString(str: string): string {
 // In-memory edge rate limiting: prevents abuse and spam attacks (IP -> count)
 const ipRateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
-function checkRateLimit(ip: string, maxRequests = 40, windowMs = 60000): boolean {
+function checkRateLimit(ip: string, maxRequests = 60, windowMs = 60000): boolean {
   const now = Date.now();
   const entry = ipRateLimitMap.get(ip);
   if (!entry || now > entry.resetAt) {
@@ -111,7 +111,7 @@ export default async function handler(req: Request) {
     // 2. IP extraction & edge rate limiting
     const forwarded = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip');
     const ip = forwarded ? forwarded.split(',')[0].trim().slice(0, 45) : '127.0.0.1';
-    if (!checkRateLimit(ip, 40, 60000)) {
+    if (!checkRateLimit(ip, 60, 60000)) {
       return new Response(JSON.stringify({ ok: false, error: 'Rate limit exceeded' }), {
         status: 429,
         headers: CORS_HEADERS,
@@ -141,23 +141,20 @@ export default async function handler(req: Request) {
     const visitorHash = hashString(clientVisitorId !== 'v_anon' ? clientVisitorId : `anon_${ip}`);
     const pvHash = hashString(`${visitorHash}_${path}`);
 
-
     // Deduplication keys
     const devEverKey = `dev_${visitorHash}`;
     const devTodayKey = `dev_${visitorHash}_${today}`;
-    const pvEverKey = `pv_${pvHash}`;
     const pvTodayKey = `pv_${pvHash}_${today}`;
 
     // Parallel lookup
-    const [isDevEver, isDevToday, isPvEver, isPvToday] = await Promise.all([
+    const [isDevEver, isDevToday, isPvToday] = await Promise.all([
       getVal(devEverKey),
       getVal(devTodayKey),
-      getVal(pvEverKey),
       getVal(pvTodayKey),
     ]);
 
-    // If this device has already visited this route, DO NOT increment anything!
-    if (isDevEver && isPvEver) {
+    // If this device has already visited this specific route TODAY, cleanly deduplicate
+    if (isDevToday && isPvToday) {
       return new Response(JSON.stringify({ ok: true, deduplicated: true }), {
         headers: CORS_HEADERS,
       });
@@ -176,7 +173,7 @@ export default async function handler(req: Request) {
       );
     }
 
-    // 2. Unique visitor count for today
+    // 2. Unique visitor count for today & current hour
     if (!isDevToday) {
       updates.push(
         (async () => {
@@ -189,26 +186,25 @@ export default async function handler(req: Request) {
       );
     }
 
-    // 3. Unique pageview count (lifetime across all devices)
-    if (!isPvEver) {
-      updates.push(
-        (async () => {
-          const totPv = parseInt((await getVal('tot_pv')) || '0', 10) + 1;
-          await setVal('tot_pv', totPv);
-          await setVal(pvEverKey, '1');
-        })()
-      );
-    }
-
-    // 4. Unique pageview count for today
+    // 3. Unique pageview count (lifetime & today & hour)
     if (!isPvToday) {
       updates.push(
         (async () => {
-          const dayPv = parseInt((await getVal(`pv_${today}`)) || '0', 10) + 1;
-          await setVal(`pv_${today}`, dayPv);
-          const hourPv = parseInt((await getVal(`pvh_${today}_${hour}`)) || '0', 10) + 1;
-          await setVal(`pvh_${today}_${hour}`, hourPv);
-          await setVal(pvTodayKey, '1');
+          const [curTotPv, curDayPv, curHourPv] = await Promise.all([
+            getVal('tot_pv'),
+            getVal(`pv_${today}`),
+            getVal(`pvh_${today}_${hour}`),
+          ]);
+          const totPv = parseInt(curTotPv || '0', 10) + 1;
+          const dayPv = parseInt(curDayPv || '0', 10) + 1;
+          const hourPv = parseInt(curHourPv || '0', 10) + 1;
+
+          await Promise.all([
+            setVal('tot_pv', totPv),
+            setVal(`pv_${today}`, dayPv),
+            setVal(`pvh_${today}_${hour}`, hourPv),
+            setVal(pvTodayKey, '1'),
+          ]);
         })()
       );
     }

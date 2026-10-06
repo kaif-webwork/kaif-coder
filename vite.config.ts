@@ -20,7 +20,7 @@ async function getVal(key: string): Promise<string | null> {
   try {
     const res = await fetch(`${KV_BASE_URL}/GetValue/${KV_APP_KEY}/${key}`, {
       headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(400),
+      signal: AbortSignal.timeout(3000),
     });
 
     if (!res.ok) {
@@ -313,13 +313,27 @@ function localAnalyticsPlugin(): Plugin {
                 keysToFetch.push(`uvh_${dateKey}_${hourKey}`, `pvh_${dateKey}_${hourKey}`);
               }
 
+              const todayKey = now.toISOString().slice(0, 10);
+              keysToFetch.push(`uv_${todayKey}`, `pv_${todayKey}`);
+
               const values = await Promise.all(keysToFetch.map(getVal));
+
+              const rawTodayUv = parseInt(values[points * 2] || '0', 10);
+              const rawTodayPv = parseInt(values[points * 2 + 1] || '0', 10);
+
+              let hourlyUvSum = 0;
+              let hourlyPvSum = 0;
 
               const series = timestamps.map((timestamp, i) => {
                 const uv = parseInt(values[i * 2] || '0', 10);
                 const pv = parseInt(values[i * 2 + 1] || '0', 10);
+                hourlyUvSum += uv;
+                hourlyPvSum += pv;
                 return { timestamp, pageviews: pv, visitors: uv };
               });
+
+              const displayVisitors24h = Math.max(hourlyUvSum, rawTodayUv);
+              const displayPageviews24h = Math.max(hourlyPvSum, rawTodayPv);
 
               const earlier12 = series.slice(0, 12);
               const recent12 = series.slice(12, 24);
@@ -332,8 +346,8 @@ function localAnalyticsPlugin(): Plugin {
               const pvGrowth = computeAccurateGrowth(recentPv, earlierPv, series, 'pageviews');
 
               const result = {
-                pageviews: totPv,
-                visitors: totUv,
+                pageviews: displayPageviews24h,
+                visitors: displayVisitors24h,
                 series,
                 growthVisitors: uvGrowth.text,
                 growthPageviews: pvGrowth.text,
@@ -341,6 +355,8 @@ function localAnalyticsPlugin(): Plugin {
                 growthPageviewsStatus: pvGrowth.status,
                 isVisitorsUp: uvGrowth.isUp,
                 isPageviewsUp: pvGrowth.isUp,
+                totalLifetimeVisitors: totUv,
+                totalLifetimePageviews: totPv,
               };
 
               periodResultCache.set(period, { data: result, exp: Date.now() + 15000 });
@@ -377,18 +393,8 @@ function localAnalyticsPlugin(): Plugin {
               return { timestamp, pageviews: pv, visitors: uv };
             });
 
-            const displayVisitors = Math.max(totUv, periodUvSum);
-            const displayPageviews = Math.max(totPv, periodPvSum);
-
-            if (series.length > 0) {
-              const lastIdx = series.length - 1;
-              if (series[lastIdx].pageviews === 0 && displayPageviews > 0) {
-                series[lastIdx].pageviews = displayPageviews;
-              }
-              if (series[lastIdx].visitors === 0 && displayVisitors > 0) {
-                series[lastIdx].visitors = displayVisitors;
-              }
-            }
+            const displayVisitors = period === '30d' ? Math.max(periodUvSum, totUv) : periodUvSum;
+            const displayPageviews = period === '30d' ? Math.max(periodPvSum, totPv) : periodPvSum;
 
             const half = Math.floor(series.length / 2);
             const earlierHalf = series.slice(0, half);
@@ -411,9 +417,11 @@ function localAnalyticsPlugin(): Plugin {
               growthPageviewsStatus: pvGrowth.status,
               isVisitorsUp: uvGrowth.isUp,
               isPageviewsUp: pvGrowth.isUp,
+              totalLifetimeVisitors: totUv,
+              totalLifetimePageviews: totPv,
             };
 
-            periodResultCache.set(period, { data: result, exp: Date.now() + 300000 });
+            periodResultCache.set(period, { data: result, exp: Date.now() + 15000 });
 
             res.statusCode = 200;
             res.setHeader('Content-Type', 'application/json');

@@ -66,6 +66,35 @@
   color: #888888;
 }
 
+/* Lifetime Stats Bar */
+.analytics-lifetime-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #0f1113;
+  border: 1px dashed #27272a;
+  padding: 8px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  color: #9ca3af;
+  border-radius: 0px;
+}
+
+.analytics-lifetime-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+  flex-shrink: 0;
+}
+
+.analytics-lifetime-text strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
 /* Chart Box */
 .analytics-chart-box {
   background: #0b0d0e;

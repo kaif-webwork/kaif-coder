@@ -9,7 +9,7 @@ interface UseAnalyticsResult {
   refetch: () => void;
 }
 
-const CACHE_STORAGE_KEY = 'kaif_analytics_server_cache_v4_';
+const CACHE_STORAGE_KEY = 'kaif_analytics_server_cache_v5_';
 
 function getCachedData(period: AnalyticsPeriod): AnalyticsData | null {
   try {

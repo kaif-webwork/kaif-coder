@@ -5,7 +5,7 @@ export const config = {
 const KV_APP_KEY = 'r405x717';
 const KV_BASE_URL = 'https://keyvalue.immanuel.co/api/KeyVal';
 
-// In-memory edge cache to prevent KV flooding under high traffic (100+ concurrent devices)
+// In-memory edge cache to prevent KV flooding under high traffic
 interface CacheEntry {
   data: any;
   expiresAt: number;
@@ -30,7 +30,7 @@ async function getVal(key: string): Promise<string | null> {
     }
     const json = await res.json();
     const val = json == null || json === '' ? null : String(json);
-    kvKeyCache.set(key, { val, exp: now + 30000 });
+    kvKeyCache.set(key, { val, exp: now + 15000 });
     return val;
   } catch {
     kvKeyCache.set(key, { val: null, exp: now + 5000 });
@@ -88,29 +88,9 @@ function computeGrowth(
         isUp,
       };
     }
-
-    // 3. Point-to-point change among active points
-    const activePoints = series.map((pt) => (type === 'visitors' ? pt.visitors : pt.pageviews)).filter((v) => v > 0);
-    if (activePoints.length >= 2) {
-      const latest = activePoints[activePoints.length - 1];
-      const preceding = activePoints[activePoints.length - 2];
-      if (preceding > 0) {
-        const diff = ((latest - preceding) / preceding) * 100;
-        if (Math.abs(diff) < 0.1) {
-          return { text: '0.0%', status: 'neutral' as const, isUp: true };
-        }
-        const isUp = diff >= 0;
-        const sign = isUp ? '↑' : '↓';
-        return {
-          text: `${sign} ${Math.min(999.9, Math.abs(diff)).toFixed(1)}%`,
-          status: isUp ? ('up' as const) : ('down' as const),
-          isUp,
-        };
-      }
-    }
   }
 
-  // 4. Dynamic rate for single active baseline - NEVER freezes at 100%
+  // 3. Dynamic growth rate if previous baseline is 0
   const volumeMultiplier = type === 'pageviews' ? 3.2 : 2.5;
   const baseOffset = type === 'pageviews' ? 14.5 : 11.2;
   const dynamicPercentage = Math.min(250.0, baseOffset + curr * volumeMultiplier);
@@ -128,13 +108,13 @@ const CORS_HEADERS = {
   'access-control-allow-headers': 'Content-Type, Authorization',
   'x-content-type-options': 'nosniff',
   'x-frame-options': 'DENY',
-  'cache-control': 'public, s-maxage=15, stale-while-revalidate=45',
+  'cache-control': 'public, s-maxage=10, stale-while-revalidate=30',
 };
 
 // In-memory rate limiting map for analytics reads (IP -> count)
 const analyticsRateLimit = new Map<string, { count: number; resetAt: number }>();
 
-function checkAnalyticsRateLimit(ip: string, maxRequests = 60, windowMs = 60000): boolean {
+function checkAnalyticsRateLimit(ip: string, maxRequests = 80, windowMs = 60000): boolean {
   const now = Date.now();
   const entry = analyticsRateLimit.get(ip);
   if (!entry || now > entry.resetAt) {
@@ -159,7 +139,7 @@ export default async function handler(req: Request) {
   // Rate limit protection
   const forwarded = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip');
   const ip = forwarded ? forwarded.split(',')[0].trim().slice(0, 45) : '127.0.0.1';
-  if (!checkAnalyticsRateLimit(ip, 80, 60000)) {
+  if (!checkAnalyticsRateLimit(ip, 100, 60000)) {
     return new Response(JSON.stringify({ error: 'Too many requests' }), {
       status: 429,
       headers: CORS_HEADERS,
@@ -168,11 +148,10 @@ export default async function handler(req: Request) {
 
   const url = new URL(req.url, 'http://localhost');
   const rawPeriod = url.searchParams.get('period');
-  // Strict period validation (prevents key injection or unexpected lookups)
   const period: '24h' | '7d' | '30d' = rawPeriod === '24h' || rawPeriod === '30d' ? rawPeriod : '7d';
   const now = new Date();
 
-  // 0. Serve from fast in-memory cache if available (0ms response, zero KV load)
+  // Serve from fast in-memory cache if available (0ms response)
   const cached = analyticsCache.get(period);
   if (cached && cached.expiresAt > now.getTime()) {
     return new Response(JSON.stringify(cached.data), {
@@ -180,18 +159,17 @@ export default async function handler(req: Request) {
     });
   }
 
-
   try {
-    // 1. Fetch total unique visitors & total unique pageviews across ALL users/devices
+    // Fetch permanent all-time global totals (Preserved lifetime data)
     const [rawTotUv, rawTotPv] = await Promise.all([
       getVal('tot_uv'),
       getVal('tot_pv'),
     ]);
-
     const totUv = Math.max(0, parseInt(rawTotUv || '0', 10));
     const totPv = Math.max(0, parseInt(rawTotPv || '0', 10));
 
     if (period === '24h') {
+      // 24H: Exact hourly metrics for the last 24 hours
       const points = 24;
       const timestamps: number[] = [];
       const keysToFetch: string[] = [];
@@ -204,29 +182,28 @@ export default async function handler(req: Request) {
         keysToFetch.push(`uvh_${dateKey}_${hourKey}`, `pvh_${dateKey}_${hourKey}`);
       }
 
+      const todayKey = now.toISOString().slice(0, 10);
+      keysToFetch.push(`uv_${todayKey}`, `pv_${todayKey}`);
+
       const values = await Promise.all(keysToFetch.map(getVal));
+
+      const rawTodayUv = parseInt(values[points * 2] || '0', 10);
+      const rawTodayPv = parseInt(values[points * 2 + 1] || '0', 10);
+
+      let hourlyUvSum = 0;
+      let hourlyPvSum = 0;
 
       const series = timestamps.map((timestamp, i) => {
         const uv = parseInt(values[i * 2] || '0', 10);
         const pv = parseInt(values[i * 2 + 1] || '0', 10);
+        hourlyUvSum += uv;
+        hourlyPvSum += pv;
         return { timestamp, pageviews: pv, visitors: uv };
       });
 
-      const todayKey = now.toISOString().slice(0, 10);
-      const rawTodayUv = await getVal(`uv_${todayKey}`);
-      const rawTodayPv = await getVal(`pv_${todayKey}`);
-      const todayUv = Math.max(totUv, parseInt(rawTodayUv || '0', 10));
-      const todayPv = Math.max(totPv, parseInt(rawTodayPv || '0', 10));
-
-      if (series.length > 0) {
-        const lastIdx = series.length - 1;
-        if (series[lastIdx].pageviews === 0 && todayPv > 0) {
-          series[lastIdx].pageviews = todayPv;
-        }
-        if (series[lastIdx].visitors === 0 && todayUv > 0) {
-          series[lastIdx].visitors = todayUv;
-        }
-      }
+      // 24h summary: unique visitors and pageviews within the last 24 hours
+      const displayVisitors24h = Math.max(hourlyUvSum, rawTodayUv);
+      const displayPageviews24h = Math.max(hourlyPvSum, rawTodayPv);
 
       // Accurate 24h delta: recent 12 hours vs earlier 12 hours
       const earlier12 = series.slice(0, 12);
@@ -240,8 +217,8 @@ export default async function handler(req: Request) {
       const pvGrowth = computeGrowth(recentPv, earlierPv, series, 'pageviews');
 
       const result = {
-        pageviews: todayPv,
-        visitors: todayUv,
+        pageviews: displayPageviews24h,
+        visitors: displayVisitors24h,
         series,
         growthVisitors: uvGrowth.text,
         growthPageviews: pvGrowth.text,
@@ -249,14 +226,16 @@ export default async function handler(req: Request) {
         growthPageviewsStatus: pvGrowth.status,
         isVisitorsUp: uvGrowth.isUp,
         isPageviewsUp: pvGrowth.isUp,
+        totalLifetimeVisitors: totUv,
+        totalLifetimePageviews: totPv,
         engine: 'shared_cloud',
       };
 
-      analyticsCache.set(period, { data: result, expiresAt: now.getTime() + 15000 });
-
+      analyticsCache.set(period, { data: result, expiresAt: now.getTime() + 10000 });
       return new Response(JSON.stringify(result), { headers: CORS_HEADERS });
-    } else {
-      const days = period === '30d' ? 30 : 7;
+    } else if (period === '7d') {
+      // 7D: Exact daily metrics for the last 7 calendar days
+      const days = 7;
       const timestamps: number[] = [];
       const keysToFetch: string[] = [];
 
@@ -280,22 +259,11 @@ export default async function handler(req: Request) {
         return { timestamp, pageviews: pv, visitors: uv };
       });
 
-      // Display the global total across all devices (or period sum if higher)
-      const displayVisitors = Math.max(totUv, periodUvSum);
-      const displayPageviews = Math.max(totPv, periodPvSum);
+      // 7-day summary: sum of traffic in the 7-day window
+      const displayVisitors7d = periodUvSum;
+      const displayPageviews7d = periodPvSum;
 
-      // If today is index days - 1, ensure series today reflects active counts
-      if (series.length > 0) {
-        const lastIdx = series.length - 1;
-        if (series[lastIdx].pageviews === 0 && displayPageviews > 0) {
-          series[lastIdx].pageviews = displayPageviews;
-        }
-        if (series[lastIdx].visitors === 0 && displayVisitors > 0) {
-          series[lastIdx].visitors = displayVisitors;
-        }
-      }
-
-      // Accurate period delta: recent half vs earlier half of the time window
+      // Accurate 7-day delta: recent half vs earlier half
       const half = Math.floor(series.length / 2);
       const earlierHalf = series.slice(0, half);
       const recentHalf = series.slice(half);
@@ -309,8 +277,8 @@ export default async function handler(req: Request) {
       const pvGrowth = computeGrowth(recentPv, earlierPv, series, 'pageviews');
 
       const result = {
-        pageviews: displayPageviews,
-        visitors: displayVisitors,
+        pageviews: displayPageviews7d,
+        visitors: displayVisitors7d,
         series,
         growthVisitors: uvGrowth.text,
         growthPageviews: pvGrowth.text,
@@ -318,11 +286,71 @@ export default async function handler(req: Request) {
         growthPageviewsStatus: pvGrowth.status,
         isVisitorsUp: uvGrowth.isUp,
         isPageviewsUp: pvGrowth.isUp,
+        totalLifetimeVisitors: totUv,
+        totalLifetimePageviews: totPv,
         engine: 'shared_cloud',
       };
 
-      analyticsCache.set(period, { data: result, expiresAt: now.getTime() + 15000 });
+      analyticsCache.set(period, { data: result, expiresAt: now.getTime() + 10000 });
+      return new Response(JSON.stringify(result), { headers: CORS_HEADERS });
+    } else {
+      // 30D: Exact daily metrics for the last 30 calendar days
+      const days = 30;
+      const timestamps: number[] = [];
+      const keysToFetch: string[] = [];
 
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * 86400000);
+        const dateKey = d.toISOString().slice(0, 10);
+        timestamps.push(d.getTime());
+        keysToFetch.push(`uv_${dateKey}`, `pv_${dateKey}`);
+      }
+
+      const values = await Promise.all(keysToFetch.map(getVal));
+
+      let periodUvSum = 0;
+      let periodPvSum = 0;
+
+      const series = timestamps.map((timestamp, i) => {
+        const uv = parseInt(values[i * 2] || '0', 10);
+        const pv = parseInt(values[i * 2 + 1] || '0', 10);
+        periodUvSum += uv;
+        periodPvSum += pv;
+        return { timestamp, pageviews: pv, visitors: uv };
+      });
+
+      // 30-day summary: reflects 30-day traffic (or lifetime total if younger than 30d)
+      const displayVisitors30d = Math.max(periodUvSum, totUv);
+      const displayPageviews30d = Math.max(periodPvSum, totPv);
+
+      const half = Math.floor(series.length / 2);
+      const earlierHalf = series.slice(0, half);
+      const recentHalf = series.slice(half);
+
+      const earlierUv = earlierHalf.reduce((acc, p) => acc + p.visitors, 0);
+      const recentUv = recentHalf.reduce((acc, p) => acc + p.visitors, 0);
+      const earlierPv = earlierHalf.reduce((acc, p) => acc + p.pageviews, 0);
+      const recentPv = recentHalf.reduce((acc, p) => acc + p.pageviews, 0);
+
+      const uvGrowth = computeGrowth(recentUv, earlierUv, series, 'visitors');
+      const pvGrowth = computeGrowth(recentPv, earlierPv, series, 'pageviews');
+
+      const result = {
+        pageviews: displayPageviews30d,
+        visitors: displayVisitors30d,
+        series,
+        growthVisitors: uvGrowth.text,
+        growthPageviews: pvGrowth.text,
+        growthVisitorsStatus: uvGrowth.status,
+        growthPageviewsStatus: pvGrowth.status,
+        isVisitorsUp: uvGrowth.isUp,
+        isPageviewsUp: pvGrowth.isUp,
+        totalLifetimeVisitors: totUv,
+        totalLifetimePageviews: totPv,
+        engine: 'shared_cloud',
+      };
+
+      analyticsCache.set(period, { data: result, expiresAt: now.getTime() + 10000 });
       return new Response(JSON.stringify(result), { headers: CORS_HEADERS });
     }
   } catch (err: any) {

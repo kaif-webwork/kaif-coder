@@ -27,4 +27,6 @@ export interface AnalyticsData {
   growthPageviewsStatus?: 'up' | 'down' | 'neutral';
   isVisitorsUp?: boolean;
   isPageviewsUp?: boolean;
+  totalLifetimeVisitors?: number;
+  totalLifetimePageviews?: number;
 }
