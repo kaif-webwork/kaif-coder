@@ -310,13 +310,19 @@
     }
     </script>
 
-  <!-- Google Fonts Preconnect -->
+  <!-- Google Fonts Preconnect & High-Performance Asynchronous Loading -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
-    rel="stylesheet" />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" media="print" onload="this.media='all'" />
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" />
+  </noscript>
+
+  <!-- Preload Critical LCP Avatar Image -->
+  <link rel="preload" as="image" href="/images/profile/pfp-latest.jpg?v=2" type="image/jpeg" fetchpriority="high" />
 </head>
+
 
 <body>
   <!-- Fallback Semantic HTML for Web Crawlers, Search Engines & AI Bots without JS -->

@@ -8,6 +8,7 @@ import ClickSpark from './components/ClickSpark';
 import Loading from './components/loading/Loading';
 import ErrorBoundary from './components/ErrorBoundary';
 import { usePageTracker } from './hooks/usePageTracker';
+import Home from './pages/home/Home';
 import './App.css';
 
 // Lazy-loaded route components with safe retry helper
@@ -26,7 +27,6 @@ function safeLazy<T extends React.ComponentType<any>>(
   });
 }
 
-const Home = safeLazy(() => import('./pages/home/Home'));
 const ProjectsLayout = safeLazy(() => import('./pages/ProjectsLayout'));
 const BlogLayout = safeLazy(() => import('./pages/blogs/BlogLayout'));
 const HowToPlanAProject = safeLazy(() => import('./pages/blogs/HowToPlanAProject'));

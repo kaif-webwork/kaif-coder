@@ -1,12 +1,14 @@
+import { lazy, Suspense } from 'react';
 import { useSEO } from '../../hooks/useSEO';
 import HeroSection from '../../components/heroSection/HeroSection';
 import SkillSection from '../../components/skillSection/SkillSection';
 import Experience from '../../components/experience/Experience';
 import Projects from '../../components/projects/Projects';
 import UsesSection from '../../components/uses/UsesSection';
-import AnalyticsSection from '../../components/analyticsSection/AnalyticsSection';
 import ContactMe from '../../components/contactMe/ContactMe';
 import Footer from '../../components/footer/Footer';
+
+const AnalyticsSection = lazy(() => import('../../components/analyticsSection/AnalyticsSection'));
 
 export default function Home() {
   useSEO({
@@ -25,9 +27,12 @@ export default function Home() {
       <Experience />
       <Projects />
       <UsesSection />
-      <AnalyticsSection />
+      <Suspense fallback={<div style={{ minHeight: '320px' }} />}>
+        <AnalyticsSection />
+      </Suspense>
       <ContactMe />
       <Footer />
     </main>
   );
 }
+

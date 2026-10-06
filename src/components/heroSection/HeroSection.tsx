@@ -63,6 +63,9 @@ export default function HeroSection() {
                 className="hero-avatar hero-avatar-img"
                 loading="eager"
                 decoding="async"
+                fetchPriority="high"
+                width={96}
+                height={96}
               />
             }
             secondContent={
@@ -72,9 +75,12 @@ export default function HeroSection() {
                 className="hero-avatar hero-avatar-qr"
                 loading="eager"
                 decoding="async"
+                width={96}
+                height={96}
               />
             }
-            gridSize={12}
+            gridSize={8}
+
             pixelColor="#ffffff"
             animationStepDuration={0.35}
             isActive={showQR}

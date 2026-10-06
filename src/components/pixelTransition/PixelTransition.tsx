@@ -50,27 +50,25 @@ export default function PixelTransition({
       navigator.maxTouchPoints > 0 ||
       window.matchMedia('(pointer: coarse)').matches);
 
-  // Build grid pixels
+  // Build grid pixels with single-batch DocumentFragment to avoid reflows
   useEffect(() => {
     const pixelGridEl = pixelGridRef.current;
     if (!pixelGridEl) return;
 
     pixelGridEl.innerHTML = '';
-
+    const fragment = document.createDocumentFragment();
     const size = 100 / gridSize;
     for (let row = 0; row < gridSize; row++) {
       for (let col = 0; col < gridSize; col++) {
         const pixel = document.createElement('div');
-        pixel.classList.add('pixelated-image-card__pixel');
-        pixel.style.backgroundColor = pixelColor;
-        pixel.style.width = `${size}%`;
-        pixel.style.height = `${size}%`;
-        pixel.style.left = `${col * size}%`;
-        pixel.style.top = `${row * size}%`;
-        pixelGridEl.appendChild(pixel);
+        pixel.className = 'pixelated-image-card__pixel';
+        pixel.style.cssText = `background-color:${pixelColor};width:${size}%;height:${size}%;left:${col * size}%;top:${row * size}%;`;
+        fragment.appendChild(pixel);
       }
     }
+    pixelGridEl.appendChild(fragment);
   }, [gridSize, pixelColor]);
+
 
   // Pixel Animation
   const animatePixels = useCallback(

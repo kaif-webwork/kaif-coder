@@ -20,8 +20,9 @@ async function getVal(key: string): Promise<string | null> {
   try {
     const res = await fetch(`${KV_BASE_URL}/GetValue/${KV_APP_KEY}/${key}`, {
       headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(2500),
+      signal: AbortSignal.timeout(400),
     });
+
     if (!res.ok) {
       kvValCache.set(key, { val: null, exp: now + 5000 });
       return null;
@@ -412,7 +413,7 @@ function localAnalyticsPlugin(): Plugin {
               isPageviewsUp: pvGrowth.isUp,
             };
 
-            periodResultCache.set(period, { data: result, exp: Date.now() + 15000 });
+            periodResultCache.set(period, { data: result, exp: Date.now() + 300000 });
 
             res.statusCode = 200;
             res.setHeader('Content-Type', 'application/json');

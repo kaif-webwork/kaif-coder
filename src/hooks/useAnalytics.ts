@@ -59,20 +59,25 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
     setLoading(!cached);
   }
 
-  // 2. Prefetch all 3 periods in the background on mount for ultra-fast tab switches
+  // 2. Prefetch all 3 periods in the background after initial render has settled
   useEffect(() => {
-    const periodsToPrefetch: AnalyticsPeriod[] = ['24h', '7d', '30d'];
-    periodsToPrefetch.forEach((p) => {
-      fetch(`/api/analytics?period=${p}`, { headers: { Accept: 'application/json' } })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((json) => {
-          if (json && Array.isArray(json.series)) {
-            setCachedData(p, json);
-          }
-        })
-        .catch(() => {});
-    });
+    const timer = setTimeout(() => {
+      const periodsToPrefetch: AnalyticsPeriod[] = ['24h', '7d', '30d'];
+      periodsToPrefetch.forEach((p) => {
+        fetch(`/api/analytics?period=${p}`, { headers: { Accept: 'application/json' } })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((json) => {
+            if (json && Array.isArray(json.series)) {
+              setCachedData(p, json);
+            }
+          })
+          .catch(() => {});
+      });
+    }, 4000);
+
+    return () => clearTimeout(timer);
   }, []);
+
 
   // 3. Window focus listener: refetch when user returns to tab
   useEffect(() => {
