@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { gsap } from 'gsap';
 import './PixelTransition.css';
 
 export interface PixelTransitionProps {
@@ -21,7 +20,7 @@ export interface PixelTransitionProps {
 export default function PixelTransition({
   firstContent,
   secondContent,
-  gridSize = 7,
+  gridSize = 8,
   pixelColor = '#ffffff',
   animationStepDuration = 0.3,
   once = false,
@@ -36,7 +35,7 @@ export default function PixelTransition({
   const containerRef = useRef<HTMLDivElement>(null);
   const pixelGridRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLDivElement>(null);
-  const delayedCallRef = useRef<gsap.core.Tween | null>(null);
+  const animTimeoutsRef = useRef<number[]>([]);
 
   const [internalActive, setInternalActive] = useState<boolean>(false);
   const activeState = controlledIsActive !== undefined ? controlledIsActive : internalActive;
@@ -50,6 +49,11 @@ export default function PixelTransition({
       navigator.maxTouchPoints > 0 ||
       window.matchMedia('(pointer: coarse)').matches);
 
+  const clearAnimationTimeouts = useCallback(() => {
+    animTimeoutsRef.current.forEach((t) => window.clearTimeout(t));
+    animTimeoutsRef.current = [];
+  }, []);
+
   // Build grid pixels with single-batch DocumentFragment to avoid reflows
   useEffect(() => {
     const pixelGridEl = pixelGridRef.current;
@@ -62,69 +66,72 @@ export default function PixelTransition({
       for (let col = 0; col < gridSize; col++) {
         const pixel = document.createElement('div');
         pixel.className = 'pixelated-image-card__pixel';
-        pixel.style.cssText = `background-color:${pixelColor};width:${size}%;height:${size}%;left:${col * size}%;top:${row * size}%;`;
+        pixel.style.cssText = `background-color:${pixelColor};width:${size}%;height:${size}%;left:${col * size}%;top:${row * size}%;display:none;`;
         fragment.appendChild(pixel);
       }
     }
     pixelGridEl.appendChild(fragment);
   }, [gridSize, pixelColor]);
 
-
-  // Pixel Animation
+  // High-performance native JavaScript Pixel Animation (Zero external dependencies)
   const animatePixels = useCallback(
     (activate: boolean) => {
       const pixelGridEl = pixelGridRef.current;
       const activeEl = activeRef.current;
       if (!pixelGridEl || !activeEl) return;
 
-      const pixels = pixelGridEl.querySelectorAll('.pixelated-image-card__pixel');
+      const pixels = Array.from(
+        pixelGridEl.querySelectorAll<HTMLElement>('.pixelated-image-card__pixel')
+      );
       if (!pixels.length) return;
 
-      gsap.killTweensOf(pixels);
-      if (delayedCallRef.current) {
-        delayedCallRef.current.kill();
+      clearAnimationTimeouts();
+
+      // Reset pixels initially
+      for (let i = 0; i < pixels.length; i++) {
+        pixels[i].style.display = 'none';
       }
 
-      gsap.set(pixels, { display: 'none' });
-
       const totalPixels = pixels.length;
-      const staggerDuration = animationStepDuration / totalPixels;
+      const stepMs = (animationStepDuration * 1000) / totalPixels;
+      const halfTimeMs = animationStepDuration * 1000;
 
       isAnimatingRef.current = true;
 
-      // Stage 1: Pixels randomly appear (cover)
-      gsap.to(pixels, {
-        display: 'block',
-        duration: 0,
-        stagger: {
-          each: staggerDuration,
-          from: 'random',
-        },
+      // Randomize reveal order
+      const shuffleCover = [...pixels].sort(() => Math.random() - 0.5);
+      shuffleCover.forEach((pixel, index) => {
+        const tid = window.setTimeout(() => {
+          pixel.style.display = 'block';
+        }, index * stepMs);
+        animTimeoutsRef.current.push(tid);
       });
 
       // Halfway: Switch active layer
-      delayedCallRef.current = gsap.delayedCall(animationStepDuration, () => {
+      const midTid = window.setTimeout(() => {
         if (activeEl) {
           activeEl.style.display = activate ? 'block' : 'none';
           activeEl.style.pointerEvents = activate ? 'auto' : 'none';
         }
+      }, halfTimeMs);
+      animTimeoutsRef.current.push(midTid);
+
+      // Randomize uncover order
+      const shuffleReveal = [...pixels].sort(() => Math.random() - 0.5);
+      shuffleReveal.forEach((pixel, index) => {
+        const tid = window.setTimeout(() => {
+          pixel.style.display = 'none';
+        }, halfTimeMs + index * stepMs);
+        animTimeoutsRef.current.push(tid);
       });
 
-      // Stage 2: Pixels randomly disappear (reveal)
-      gsap.to(pixels, {
-        display: 'none',
-        duration: 0,
-        delay: animationStepDuration,
-        stagger: {
-          each: staggerDuration,
-          from: 'random',
-        },
-        onComplete: () => {
-          isAnimatingRef.current = false;
-        },
-      });
+      // Completion callback
+      const doneTid = window.setTimeout(() => {
+        isAnimatingRef.current = false;
+      }, halfTimeMs + totalPixels * stepMs + 20);
+      animTimeoutsRef.current.push(doneTid);
     },
-    [animationStepDuration]
+    [animationStepDuration, clearAnimationTimeouts]
   );
 
   const prevControlledRef = useRef<boolean | undefined>(controlledIsActive);
@@ -151,19 +158,12 @@ export default function PixelTransition({
     }
   }, [controlledIsActive, animatePixels]);
 
-  // Clean up GSAP on unmount
+  // Clean up on unmount
   useEffect(() => {
-    const gridEl = pixelGridRef.current;
     return () => {
-      if (delayedCallRef.current) {
-        delayedCallRef.current.kill();
-      }
-      if (gridEl) {
-        const pixels = gridEl.querySelectorAll('.pixelated-image-card__pixel');
-        gsap.killTweensOf(pixels);
-      }
+      clearAnimationTimeouts();
     };
-  }, []);
+  }, [clearAnimationTimeouts]);
 
   const triggerAnimation = (activate: boolean) => {
     if (controlledIsActive === undefined) {
@@ -209,12 +209,20 @@ export default function PixelTransition({
       onFocus={handleEnter}
       onBlur={handleLeave}
       tabIndex={0}
+      role="region"
+      aria-label="Interactive profile image transition"
     >
-      {aspectRatio && <div className="pixelated-image-card__spacer" style={{ paddingTop: aspectRatio }} />}
+      {aspectRatio && (
+        <div className="pixelated-image-card__spacer" style={{ paddingTop: aspectRatio }} />
+      )}
       <div className="pixelated-image-card__default" aria-hidden={activeState}>
         {firstContent}
       </div>
-      <div className="pixelated-image-card__active" ref={activeRef} aria-hidden={!activeState}>
+      <div
+        className="pixelated-image-card__active"
+        ref={activeRef}
+        aria-hidden={!activeState}
+      >
         {secondContent}
       </div>
       <div className="pixelated-image-card__pixels" ref={pixelGridRef} />

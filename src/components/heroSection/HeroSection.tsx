@@ -48,6 +48,7 @@ export default function HeroSection() {
           title={showQR ? 'Click to show Photo' : 'Click to show QR Code'}
           role="button"
           tabIndex={0}
+          aria-label={showQR ? 'Switch to profile photo' : 'Switch to QR code'}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
@@ -73,7 +74,7 @@ export default function HeroSection() {
                 src={userImages.profile.qrCode}
                 alt="Mohd Kaif QR Code"
                 className="hero-avatar hero-avatar-qr"
-                loading="eager"
+                loading="lazy"
                 decoding="async"
                 width={96}
                 height={96}
@@ -163,6 +164,7 @@ export default function HeroSection() {
             target="_blank"
             rel="noopener noreferrer"
             className="hero-card-btn twitter-btn"
+            aria-label="Follow Mohd Kaif on X (Twitter)"
             onClick={() => playClickSound()}
           >
             Follow

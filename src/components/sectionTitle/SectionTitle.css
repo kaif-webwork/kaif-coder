@@ -11,6 +11,8 @@
   color: #e5e7eb;
   position: relative;
   padding: 4px 14px;
+  margin: 0;
+  line-height: 1.4;
   border: 1px dashed #383838;
   border-radius: 0px;
   display: inline-block;

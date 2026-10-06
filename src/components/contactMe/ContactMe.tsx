@@ -30,6 +30,7 @@ export default function ContactMe() {
               target={btn.url.startsWith('mailto') || btn.url.startsWith('/') ? undefined : '_blank'}
               rel="noopener noreferrer"
               className="contact-pill-btn"
+              aria-label={`Connect with Mohd Kaif via ${btn.name}`}
               onClick={() => playClickSound()}
             >
               <span className="contact-btn-icon">{btn.icon}</span>

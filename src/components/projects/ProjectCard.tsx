@@ -20,7 +20,15 @@ export default function ProjectCard({
   return (
     <div className="project-card">
       <div className="project-banner-wrapper">
-        <img src={banner} alt={name} className="project-banner" loading="eager" decoding="async" />
+        <img
+          src={banner}
+          alt={name}
+          className="project-banner"
+          loading="lazy"
+          decoding="async"
+          width="600"
+          height="315"
+        />
         {badgeLeft && <span className="project-banner-badge-left">{badgeLeft}</span>}
         {badgeRight && <span className="project-banner-badge-right">{badgeRight}</span>}
       </div>
@@ -29,7 +37,7 @@ export default function ProjectCard({
         <div className="project-header-row">
           <h3 className="project-title">
             {name}
-            {icon && <img src={icon} alt={name} className="project-title-icon" />}
+            {icon && <img src={icon} alt={`${name} logo`} className="project-title-icon" width="20" height="20" />}
             {statusIcon && <span className="project-status-icon">{statusIcon}</span>}
           </h3>
 
@@ -38,6 +46,7 @@ export default function ProjectCard({
               <Link
                 to={preview}
                 className="project-action-btn"
+                aria-label={`Preview ${name}`}
                 onClick={() => playClickSound()}
               >
                 <HiOutlineArrowTopRightOnSquare /> Preview
@@ -49,6 +58,7 @@ export default function ProjectCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="project-action-btn"
+                aria-label={`Live demo of ${name}`}
                 onClick={() => playClickSound()}
               >
                 <HiOutlineArrowTopRightOnSquare /> Live
@@ -60,6 +70,7 @@ export default function ProjectCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="project-action-btn"
+                aria-label={`GitHub repository of ${name}`}
                 onClick={() => playClickSound()}
               >
                 <FaGithub /> GitHub

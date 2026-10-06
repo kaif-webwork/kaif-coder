@@ -396,7 +396,50 @@
     </main>
   </noscript>
 
-  <div id="root"></div>
+  <div id="root">
+    <nav class="navbar">
+      <div class="navbar-container">
+        <div class="navbar-links">
+          <a href="/" class="navbar-link active">Home</a>
+          <a href="/projects" class="navbar-link">Projects</a>
+          <a href="/resume" class="navbar-link">Resume</a>
+          <a href="/certificates" class="navbar-link">Certificates</a>
+          <a href="/analytics" class="navbar-link">Analytics</a>
+          <a href="/support" class="navbar-link">Support</a>
+        </div>
+        <a href="https://github.com/kaif-webwork" target="_blank" rel="noopener noreferrer" class="navbar-star-btn" aria-label="GitHub Profile">
+          <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 576 512" class="navbar-star-icon" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M259.3 17.8L194 150.2 47.9 171.5c-26.2 3.8-36.7 36.1-17.7 54.6l105.7 103-25 145.5c-4.5 26.3 23.2 46 46.4 33.7L288 439.6l130.7 68.7c23.2 12.2 50.9-7.4 46.4-33.7l-25-145.5 105.7-103c19-18.5 8.5-50.8-17.7-54.6L382 150.2 316.7 17.8c-11.7-23.6-45.6-23.9-57.4 0z"></path></svg>
+        </a>
+      </div>
+    </nav>
+    <main class="home-page">
+      <section class="hero-section">
+        <div class="hero-profile">
+          <div class="hero-avatar-wrapper">
+            <div class="hero-pixel-avatar">
+              <img src="/images/profile/pfp-latest.jpg?v=2" alt="Mohd Kaif" class="hero-avatar hero-avatar-img" width="96" height="96" fetchpriority="high" />
+            </div>
+          </div>
+          <div class="hero-info">
+            <h1 class="hero-name">Mohd Kaif</h1>
+            <p class="hero-username"><a href="https://x.com/kaif_coder" target="_blank" rel="noopener noreferrer">@kaif_coder</a></p>
+            <div class="hero-meta">
+              <span class="hero-meta-location">Delhi, India</span>
+              <span class="hero-meta-dot">•</span>
+              <span class="hero-meta-time">Available</span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-bio">
+          <ul class="hero-bio-list">
+            <li class="hero-bio-item"><span class="hero-bullet"></span><span class="hero-bio-text">Hi, I am a <span class="hero-bio-highlight">Full Stack Developer</span></span></li>
+            <li class="hero-bio-item"><span class="hero-bullet"></span><span class="hero-bio-text">Passionate about building <span class="hero-bio-highlight">scalable web &amp; mobile apps</span> and contributing to <span class="hero-bio-highlight">open source</span>.</span></li>
+            <li class="hero-bio-item"><span class="hero-bullet"></span><span class="hero-bio-text">Always <span class="hero-bio-highlight">shipping</span>, <span class="hero-bio-highlight">learning</span>, and turning ideas into products people actually use.</span></li>
+          </ul>
+        </div>
+      </section>
+    </main>
+  </div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 

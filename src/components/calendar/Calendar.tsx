@@ -159,6 +159,8 @@ export default function Calendar() {
           viewBox="0 0 655 132"
           className="calendar-inner-svg"
           xmlns="http://www.w3.org/2000/svg"
+          role="img"
+          aria-label="Mohd Kaif GitHub Contributions Activity Graph"
         >
           {/* Month labels */}
           {monthLabels.map((m) => (

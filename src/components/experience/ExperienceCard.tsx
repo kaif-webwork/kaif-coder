@@ -56,6 +56,7 @@ export default function ExperienceCard({
                 className="exp-company-ext-link"
                 onClick={(e) => e.stopPropagation()}
                 title="Open link"
+                aria-label={`Visit ${company}`}
               >
                 <HiOutlineArrowTopRightOnSquare />
               </a>

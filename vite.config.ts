@@ -450,8 +450,16 @@ export default defineConfig({
           if (id.includes('node_modules/echarts')) {
             return 'vendor-echarts';
           }
-          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router')) {
-            return 'vendor-react';
+          if (
+            id.includes('node_modules/react/') ||
+            id.includes('node_modules/react-dom/') ||
+            id.includes('node_modules/react-router/') ||
+            id.includes('node_modules/react-router-dom/')
+          ) {
+            return 'vendor-core';
+          }
+          if (id.includes('node_modules/react-icons/')) {
+            return 'vendor-icons';
           }
         },
       },

@@ -2,13 +2,14 @@ import { lazy, Suspense } from 'react';
 import { useSEO } from '../../hooks/useSEO';
 import HeroSection from '../../components/heroSection/HeroSection';
 import SkillSection from '../../components/skillSection/SkillSection';
-import Experience from '../../components/experience/Experience';
-import Projects from '../../components/projects/Projects';
-import UsesSection from '../../components/uses/UsesSection';
-import ContactMe from '../../components/contactMe/ContactMe';
-import Footer from '../../components/footer/Footer';
 
+// Below-the-fold sections are code-split & lazy-loaded to achieve 100% mobile Lighthouse performance
+const Experience = lazy(() => import('../../components/experience/Experience'));
+const Projects = lazy(() => import('../../components/projects/Projects'));
+const UsesSection = lazy(() => import('../../components/uses/UsesSection'));
 const AnalyticsSection = lazy(() => import('../../components/analyticsSection/AnalyticsSection'));
+const ContactMe = lazy(() => import('../../components/contactMe/ContactMe'));
+const Footer = lazy(() => import('../../components/footer/Footer'));
 
 export default function Home() {
   useSEO({
@@ -24,15 +25,24 @@ export default function Home() {
     <main className="home-page">
       <HeroSection />
       <SkillSection />
-      <Experience />
-      <Projects />
-      <UsesSection />
+      <Suspense fallback={<div style={{ minHeight: '260px' }} />}>
+        <Experience />
+      </Suspense>
+      <Suspense fallback={<div style={{ minHeight: '380px' }} />}>
+        <Projects />
+      </Suspense>
+      <Suspense fallback={<div style={{ minHeight: '140px' }} />}>
+        <UsesSection />
+      </Suspense>
       <Suspense fallback={<div style={{ minHeight: '320px' }} />}>
         <AnalyticsSection />
       </Suspense>
-      <ContactMe />
-      <Footer />
+      <Suspense fallback={<div style={{ minHeight: '160px' }} />}>
+        <ContactMe />
+      </Suspense>
+      <Suspense fallback={<div style={{ minHeight: '90px' }} />}>
+        <Footer />
+      </Suspense>
     </main>
   );
 }
-
