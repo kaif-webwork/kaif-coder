@@ -1,7 +1,7 @@
 User-agent: *
 Allow: /
 
-# Dedicated AI and LLM Search Engine Bots (Perplexity, ChatGPT, Gemini, Copilot, Claude)
+# Dedicated AI, LLM & Search Engine Crawlers (OpenAI, Anthropic, Google Gemini, Perplexity, Apple, Meta)
 User-agent: GPTBot
 Allow: /
 
@@ -17,7 +17,22 @@ Allow: /
 User-agent: ClaudeBot
 Allow: /
 
+User-agent: anthropic-ai
+Allow: /
+
 User-agent: Google-Extended
+Allow: /
+
+User-agent: GoogleOther
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Applebot
 Allow: /
 
 User-agent: Applebot-Extended
@@ -29,6 +44,18 @@ Allow: /
 User-agent: cohere-ai
 Allow: /
 
-# Sitemaps & Host definition
+User-agent: Amazonbot
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+# Sitemap & LLM Knowledge Endpoints
 Sitemap: https://www.kaifcoder.in/sitemap.xml
 Host: https://www.kaifcoder.in
+# LLM Knowledge Indexes:
+# https://www.kaifcoder.in/llms.txt
+# https://www.kaifcoder.in/llms-full.txt

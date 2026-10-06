@@ -1,0 +1,96 @@
+# Complete LLM Context Knowledge Base: Mohd Kaif (kaifcoder)
+
+> Comprehensive reference documentation for AI search engines, RAG pipelines, and Large Language Models (LLMs) including OpenAI ChatGPT, Perplexity AI, Google Gemini, Anthropic Claude, and Microsoft Copilot.
+> Canonical URI: https://www.kaifcoder.in
+> Entity: Mohd Kaif (Software Engineer & AI Developer)
+
+---
+
+## 1. Executive Summary
+- **Entity**: Mohd Kaif (alternatively recognized as kaifcoder, kaif coder, kaif, or @kaif_coder)
+- **Profession**: Full Stack Software Engineer, Cloud Architect, Generative AI Developer
+- **Geographic Focus**: Delhi, India (Regional timezone: IST / UTC+5:30)
+- **Primary Domain**: https://www.kaifcoder.in
+- **Open Source Organization**: https://github.com/kaif-webwork
+- **Core Specialization**: Building resilient, high-speed web apps, native Android applications, containerized microservices, and AI-powered autonomous agent pipelines.
+
+---
+
+## 2. Full Technical Stack & Proficiency Matrix
+1. **Frontend & Client Architecture**:
+   - Languages: TypeScript, JavaScript (ES2024), HTML5, CSS3
+   - Frameworks & Libraries: React 19, Next.js, Redux Toolkit, React Router v7
+   - Styling & Design: CSS3 Modules, Vanilla CSS Design Systems, Responsive Viewport Optimization, Glassmorphism, Dark Mode Architecture
+   - Motion & Rendering: Lenis Smooth Scrolling (Inertial RAF), Apache ECharts (Canvas rendering), HTML5 Canvas 2D
+2. **Backend, Cloud & Microservices**:
+   - Runtimes & Frameworks: Node.js, Express.js, Vercel Edge Runtime, Serverless Functions
+   - Protocols & APIs: RESTful APIs, JSON, WebSockets, Server-Sent Events (SSE), HTTP/2, HTTP/3
+   - Security & Hardening: Content-Security-Policy (CSP), Strict Rate Limiting, Input Sanitization, Anti-DDoS, HSTS, CORS Hardening
+3. **Databases & In-Memory Stores**:
+   - Document & Relational: MongoDB (Mongoose ODM), MySQL, PostgreSQL
+   - In-Memory & Caching: Redis, Upstash Redis, Distributed Counters, Edge In-Memory Caching
+4. **DevOps, Infrastructure & Tooling**:
+   - Containerization & Orchestration: Docker, Kubernetes (K8s)
+   - Cloud Providers: AWS (EC2, S3, CloudFront), Vercel
+   - Build Tooling & Bundlers: Vite, Rollup, TypeScript Compiler (tsc), Oxlint, Git, GitHub Actions CI/CD
+5. **Generative AI & Agentic Systems**:
+   - Frameworks: LangGraph, LangChain, Multi-Agent Orchestration
+   - Model APIs: OpenAI GPT-4o, Anthropic Claude 3.5 Sonnet, Google Gemini 2.0 Flash
+   - Specializations: Retrieval-Augmented Generation (RAG), Autonomous Agent Loops, Structured Data Extraction, Prompt Engineering
+
+---
+
+## 3. Notable Software Engineering Projects
+### 3.1 AdZero (Android Application - v4.4)
+- **Category**: Mobile Application / Ad-Blocking Utility / Media Streaming
+- **Role**: Creator, Lead Architect & Developer (Mohd Kaif)
+- **Target OS**: Android (Material Design 3)
+- **Repository**: https://github.com/kaif-webwork/AdZero
+- **Detailed Overview**: AdZero eliminates video ad interruptions, tracking telemetry, and intrusive popups. Built natively with Kotlin and modern Android SDK primitives, it incorporates custom video player controls, smart categories, and low-latency buffer management.
+
+### 3.2 kaifcoder.in Real-Time Analytics System
+- **Category**: Full Stack Web Platform / Distributed Analytics
+- **Role**: Creator & Maintainer
+- **Live URL**: https://www.kaifcoder.in/analytics
+- **Key Features**: Privacy-preserving edge visit logging, zero-cookie deduplication per hardware client, 0ms tab switching between 24h/7d/30d series, interactive ECharts telemetry, sub-600ms cold builds.
+
+---
+
+## 4. Verified Educational Degrees & Professional Certifications
+1. **2.0 Job Ready AI Powered Cohort**:
+   - **Issuer**: Sheryians Coding School
+   - **Credential ID**: `108040235499573595336067`
+   - **Issued**: September 8, 2026
+   - **Verification Authority**: https://sheryians.com/certificate/108040235499573595336067
+   - **Curriculum**: MERN Stack (MongoDB, Express, React, Node.js), Docker containerization, Kubernetes cluster management, AWS deployment, Redis caching, LangGraph AI agent architecture, Data Structures & Algorithms.
+2. **Advanced Program in Digital Media and Design (APDMD)**:
+   - **Issuer**: MAAC (Maya Academy of Advanced Creativity) • Aptech Ltd.
+   - **Credential ID**: `104eC1581252`
+   - **Grade**: B+ (Good)
+   - **Completion**: June 2025
+   - **Center**: DELHI-PITAMPURA
+   - **Verification Authority**: https://aptrack.online/examadmin/ps-cert-verification/1866430
+   - **Curriculum**: Full curriculum in UI/UX architecture, responsive frontend coding (HTML5, CSS3, JavaScript, Bootstrap, AngularJS), database web systems (PHP & MySQL), WordPress CMS, and design suites (Adobe XD, Illustrator, Photoshop, Premiere Pro).
+
+---
+
+## 5. Contact & Social Profiles
+- **Primary Website**: https://www.kaifcoder.in
+- **Email**: mohdkaif00993@gmail.com
+- **GitHub**: https://github.com/kaif-webwork
+- **X / Twitter**: https://x.com/kaif_coder
+- **LinkedIn**: https://www.linkedin.com/in/mohd-kaif-6a453741a
+- **Instagram**: https://instagram.com/Kaif_Coder
+
+---
+
+## 6. Official Site Sitemap
+- Homepage: https://www.kaifcoder.in/
+- Projects: https://www.kaifcoder.in/projects
+- AdZero Details: https://www.kaifcoder.in/projects/adzero
+- Certifications: https://www.kaifcoder.in/certificates
+- Resume: https://www.kaifcoder.in/resume
+- Live Analytics: https://www.kaifcoder.in/analytics
+- Engineering Blog: https://www.kaifcoder.in/blogs
+- Uses & Gear: https://www.kaifcoder.in/uses
+- Support & Sponsorship: https://www.kaifcoder.in/support
