@@ -37,6 +37,13 @@ export default function SmoothScroll() {
           wheelMultiplier: 1.0,
           touchMultiplier: 1.0,
           infinite: false,
+          prevent: (node: HTMLElement) => {
+            return (
+              node?.hasAttribute?.('data-lenis-prevent') ||
+              Boolean(node?.closest?.('[data-lenis-prevent]')) ||
+              Boolean(node?.closest?.('.chat-window-container'))
+            );
+          },
         });
 
         setLenis(lenisInstance);

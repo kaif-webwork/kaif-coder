@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/react';
 import ScrollToTop from './components/ScrollToTop';
 import SmoothScroll from './components/SmoothScroll';
 import Navbar from './components/navbar/Navbar';
+import ChatBot from './components/chatbot/ChatBot';
 import ClickSpark from './components/ClickSpark';
 import Loading from './components/loading/Loading';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -51,6 +52,7 @@ export default function App() {
         <PageTracker />
         <ScrollToTop />
         <Navbar />
+        <ChatBot />
         <ClickSpark sparkColor="#ffffff" sparkSize={10} sparkRadius={16}>
           <ErrorBoundary>
             <Suspense fallback={<Loading />}>
