@@ -95,13 +95,16 @@ export default function ChatWindow({
     }
   }, [messages, isThinking, isOpen]);
 
-  // Auto-focus input when opened
+  // Auto-focus input when opened (desktop only to prevent mobile viewport squashing)
   useEffect(() => {
     if (isOpen) {
-      const timer = setTimeout(() => {
-        inputRef.current?.focus({ preventScroll: true });
-      }, 120);
-      return () => clearTimeout(timer);
+      const isTouch = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+      if (!isTouch) {
+        const timer = setTimeout(() => {
+          inputRef.current?.focus({ preventScroll: true });
+        }, 120);
+        return () => clearTimeout(timer);
+      }
     }
   }, [isOpen]);
 

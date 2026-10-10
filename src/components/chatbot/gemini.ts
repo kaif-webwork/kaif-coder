@@ -15,7 +15,7 @@ export function getGeminiApiKey(): string {
     // Ignore localStorage errors
   }
 
-  // Check Vite environment variable if available
+  // Check Vite environment variable configured on Vercel and local environment
   const envKey = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) || '';
   return envKey.trim().replace(/^["']|["']$/g, '');
 }
@@ -149,8 +149,8 @@ export async function generateGeminiReply(
     throw new Error('Gemini API key is not configured.');
   }
 
-  // Ultra-fast active models: gemini-3.5-flash-lite (fastest, ~1.5s) -> gemini-3.5-flash
-  const candidateModels = ['gemini-3.5-flash-lite', 'gemini-3.5-flash'];
+  // Verified active Google Gemini models
+  const candidateModels = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite'];
 
   // Format conversation history for Gemini (last 8 messages for context efficiency)
   const recentHistory = history.slice(-8);
@@ -182,7 +182,8 @@ export async function generateGeminiReply(
 
   for (const model of candidateModels) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4500);
+    // 12-second timeout allows mobile connections (3G/4G/5G) to complete smoothly
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
 
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
