@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type { RobotHeadState } from './robot-heads';
 import ChatTrigger from './ChatTrigger';
 import ChatWindow from './ChatWindow';
 import { getChatResponse, type ChatMessage } from './knowledge';
+import { getDailyMascot } from './mascots';
 import {
   playMessageReceivedSound,
   playMessageSentSound,
@@ -9,27 +11,14 @@ import {
 } from '../../utils/sound';
 import './ChatBot.css';
 
-const STORAGE_KEY = 'kaif_ai_chat_history_v1';
-const SOUND_KEY = 'kaif_ai_sound_enabled';
-
-const INITIAL_MESSAGE: ChatMessage = {
-  id: 'init-1',
-  sender: 'assistant',
-  text: `Hi! I am **Kivo AI (Beta)**. Feel free to ask about Mohd Kaif's work, including his flagship project **AdZero**, tech stack, work experience, verified credentials, or resume.`,
-  timestamp: Date.now(),
-};
-
-export function openKivoAIChat() {
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('open-kivo-ai'));
-  }
-}
-
-export const openKaifAIChat = openKivoAIChat;
+const STORAGE_KEY = 'kairo_ai_chat_history_v1';
+const SOUND_KEY = 'kairo_ai_sound_enabled';
+const FACE_STORAGE_KEY = 'kairo_ai_mascot_face_v1';
 
 export default function ChatBot() {
   const [isOpen, setIsOpen] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
+  const dailyMascot = getDailyMascot();
   const [soundEnabled, setSoundEnabled] = useState(() => {
     try {
       const saved = localStorage.getItem(SOUND_KEY);
@@ -38,6 +27,28 @@ export default function ChatBot() {
       return true;
     }
   });
+
+  const [mascotFace, setMascotFace] = useState<RobotHeadState>(() => {
+    try {
+      const saved = localStorage.getItem(FACE_STORAGE_KEY);
+      if (saved) return saved as RobotHeadState;
+    } catch {
+      // Fallback
+    }
+    return 'happy'; // Default to happy face as requested
+  });
+
+  const userChosenFaceRef = useRef<RobotHeadState>(mascotFace);
+
+  const handleSelectFace = (face: RobotHeadState) => {
+    userChosenFaceRef.current = face;
+    setMascotFace(face);
+    try {
+      localStorage.setItem(FACE_STORAGE_KEY, face);
+    } catch {
+      // Ignore
+    }
+  };
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try {
@@ -53,6 +64,11 @@ export default function ChatBot() {
     }
     return [];
   });
+
+  const messagesRef = useRef(messages);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Save messages to sessionStorage
   useEffect(() => {
@@ -75,11 +91,13 @@ export default function ChatBot() {
       }
     };
 
+    window.addEventListener('open-kairo-ai', handleOpenEvent);
     window.addEventListener('open-kivo-ai', handleOpenEvent);
     window.addEventListener('open-kaif-ai', handleOpenEvent);
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
+      window.removeEventListener('open-kairo-ai', handleOpenEvent);
       window.removeEventListener('open-kivo-ai', handleOpenEvent);
       window.removeEventListener('open-kaif-ai', handleOpenEvent);
       window.removeEventListener('keydown', handleKeyDown);
@@ -132,13 +150,19 @@ export default function ChatBot() {
 
       setMessages((prev) => [...prev, userMsg]);
       setIsThinking(true);
+      setMascotFace('searching'); // Expressive searching state
 
       if (soundEnabled) {
         playMessageSentSound();
       }
 
+      const searchTimer = setTimeout(() => {
+        setMascotFace('thinking');
+      }, 180);
+
       try {
-        const replyText = await getChatResponse(text);
+        const replyText = await getChatResponse(text, messagesRef.current);
+        clearTimeout(searchTimer);
 
         const aiMsg: ChatMessage = {
           id: `ai-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -148,11 +172,22 @@ export default function ChatBot() {
         };
 
         setMessages((prev) => [...prev, aiMsg]);
+        setMascotFace('speaking'); // Expressive speaking face
+
+        setTimeout(() => {
+          setMascotFace(userChosenFaceRef.current);
+        }, 1500);
 
         if (soundEnabled) {
           playMessageReceivedSound();
         }
       } catch {
+        clearTimeout(searchTimer);
+        setMascotFace('error'); // Expressive error face
+        setTimeout(() => {
+          setMascotFace(userChosenFaceRef.current);
+        }, 2200);
+
         const fallbackMsg: ChatMessage = {
           id: `ai-err-${Date.now()}`,
           sender: 'assistant',
@@ -173,11 +208,23 @@ export default function ChatBot() {
   };
 
   return (
-    <div className="kaif-ai-chatbot-root">
-      {/* Floating Trigger with TV Mascot Icon */}
+    <div
+      className="kaif-ai-chatbot-root"
+      style={
+        {
+          '--mascot-daily-color': dailyMascot.color,
+          '--mascot-daily-hover': dailyMascot.hoverColor,
+          '--mascot-daily-glow': dailyMascot.glowColor,
+          '--mascot-daily-trim': dailyMascot.trimColor,
+          '--mascot-daily-text': dailyMascot.textColor,
+        } as React.CSSProperties
+      }
+    >
+      {/* Floating Trigger with Square Mascot */}
       <ChatTrigger
         isOpen={isOpen}
         onToggle={() => setIsOpen((prev) => !prev)}
+        mascotFace={mascotFace}
       />
 
       {/* Expandable Chat Window */}
@@ -190,6 +237,8 @@ export default function ChatBot() {
         isThinking={isThinking}
         soundEnabled={soundEnabled}
         onToggleSound={toggleSound}
+        mascotFace={mascotFace}
+        onSelectFace={handleSelectFace}
       />
     </div>
   );

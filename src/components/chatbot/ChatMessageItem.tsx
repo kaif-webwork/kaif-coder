@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { FiCopy, FiCheck, FiArrowUpRight } from 'react-icons/fi';
+import { FiCopy, FiCheck } from 'react-icons/fi';
 import { type ChatMessage } from './knowledge';
 import ChatMascot from './ChatMascot';
 
 interface ChatMessageItemProps {
   message: ChatMessage;
   onNavigate?: () => void;
+  onPreviewImage?: (src: string, alt?: string) => void;
 }
 
 function InlineCopyPill({
@@ -60,7 +61,11 @@ function InlineCopyPill({
   );
 }
 
-export default function ChatMessageItem({ message, onNavigate }: ChatMessageItemProps) {
+export default function ChatMessageItem({
+  message,
+  onNavigate,
+  onPreviewImage,
+}: ChatMessageItemProps) {
   const [copied, setCopied] = useState(false);
   const isAssistant = message.sender === 'assistant';
 
@@ -71,7 +76,9 @@ export default function ChatMessageItem({ message, onNavigate }: ChatMessageItem
         .replace(/:::card\s*([^\n]*)\n/g, '$1:\n')
         .replace(/:::/g, '')
         .replace(/\[tags:\s*([^\]]+)\]/g, '$1')
-        .replace(/\[button:\s*([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)');
+        .replace(/\[button:\s*\](?:\([^)]*\))?/g, '')
+        .replace(/\[button:\s*([^\]]+)\](?:\([^)]+\))?/g, '$1')
+        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '[Image: $1]');
 
       if (navigator?.clipboard?.writeText) {
         await navigator.clipboard.writeText(cleanText);
@@ -97,17 +104,23 @@ export default function ChatMessageItem({ message, onNavigate }: ChatMessageItem
    * Splits message into cards (:::card ... :::), action buttons, headings, and standard markdown.
    */
   const renderMessageContent = (rawText: string) => {
+    // Completely strip any stray or legacy [button: ...] markers so buttons never render
+    const sanitizedText = rawText
+      .replace(/\[button:\s*\](?:\([^)]*\))?/gi, '')
+      .replace(/\[button:\s*([^\]]+)\]\(([^)]+)\)/gi, '[$1]($2)')
+      .replace(/\[button:\s*([^\]]+)\]/gi, '$1');
+
     const cardRegex = /:::card\s*([^\n]*)\n([\s\S]*?):::/g;
     const segments: Array<{ type: 'card' | 'text'; title?: string; body: string }> = [];
 
     let lastIndex = 0;
     let match: RegExpExecArray | null;
 
-    while ((match = cardRegex.exec(rawText)) !== null) {
+    while ((match = cardRegex.exec(sanitizedText)) !== null) {
       if (match.index > lastIndex) {
         segments.push({
           type: 'text',
-          body: rawText.slice(lastIndex, match.index),
+          body: sanitizedText.slice(lastIndex, match.index),
         });
       }
       segments.push({
@@ -118,10 +131,10 @@ export default function ChatMessageItem({ message, onNavigate }: ChatMessageItem
       lastIndex = match.index + match[0].length;
     }
 
-    if (lastIndex < rawText.length) {
+    if (lastIndex < sanitizedText.length) {
       segments.push({
         type: 'text',
-        body: rawText.slice(lastIndex),
+        body: sanitizedText.slice(lastIndex),
       });
     }
 
@@ -164,35 +177,37 @@ export default function ChatMessageItem({ message, onNavigate }: ChatMessageItem
         return <div key={lineKey} className="chat-line-break" />;
       }
 
-      // Action Button: [button: Label](url)
-      const btnMatch = trimmed.match(/^\[button:\s*([^\]]+)\]\(([^)]+)\)$/);
-      if (btnMatch) {
-        const [, label, url] = btnMatch;
-        const isInternal = url.startsWith('/');
-        if (isInternal) {
-          return (
-            <Link
-              key={lineKey}
-              to={url}
-              className="chat-action-btn internal"
-              onClick={onNavigate}
-            >
-              <span>{label}</span>
-              <FiArrowUpRight className="chat-action-btn-icon" />
-            </Link>
-          );
-        }
+      // Visual Media Card: ![Alt text](url) or [img: alt](url)
+      const imgMatch =
+        trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/) ||
+        trimmed.match(/^\[img:\s*([^\]]*)\]\(([^)]+)\)$/);
+      if (imgMatch) {
+        const [, alt, url] = imgMatch;
         return (
-          <a
-            key={lineKey}
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="chat-action-btn external"
-          >
-            <span>{label}</span>
-            <FiArrowUpRight className="chat-action-btn-icon" />
-          </a>
+          <div key={lineKey} className="chat-media-card">
+            <div
+              className="chat-media-img-frame"
+              role="button"
+              tabIndex={0}
+              onClick={() => onPreviewImage?.(url, alt)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onPreviewImage?.(url, alt);
+                }
+              }}
+              title="Click to view image in full screen"
+              aria-label={`View ${alt || 'image'} full screen`}
+            >
+              <img
+                src={url}
+                alt={alt || 'Visual Preview'}
+                className="chat-media-img"
+                loading="lazy"
+              />
+            </div>
+            {alt && <div className="chat-media-caption">{alt}</div>}
+          </div>
         );
       }
 
@@ -232,13 +247,13 @@ export default function ChatMessageItem({ message, onNavigate }: ChatMessageItem
         );
       }
 
-      // Bullet points (- or *)
-      if (/^[-*]\s+/.test(trimmed)) {
+      // Bullet points (-, *, or •)
+      if (/^[•\-*]\s*/.test(trimmed)) {
         return (
           <div key={lineKey} className="chat-bullet-row">
-            <span className="hero-bullet chat-hero-bullet" />
+            <span className="chat-bullet-dot">•</span>
             <span className="chat-bullet-content">
-              {parseInline(trimmed.replace(/^[-*]\s+/, ''), lineKey)}
+              {parseInline(trimmed.replace(/^[•\-*]\s*/, ''), lineKey)}
             </span>
           </div>
         );
@@ -270,11 +285,43 @@ export default function ChatMessageItem({ message, onNavigate }: ChatMessageItem
    * Inline Markdown Parser: parses copy pills, emails, bold, italic, code, links
    */
   const parseInline = (text: string, parentKey: string) => {
-    const tokenRegex = /(\[copy:\s*[^\]]+\](?:\([^)]+\))?|\[[^\]]+\]\([^)]+\)|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+    const tokenRegex = /(!\[[^\]]*\]\([^)]+\)|\[copy:\s*[^\]]+\](?:\([^)]+\))?|\[[^\]]+\]\([^)]+\)|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
     const parts = text.split(tokenRegex);
 
     return parts.map((part, idx) => {
       const key = `${parentKey}-tok-${idx}`;
+
+      // Inline Image: ![Alt text](url)
+      const imgInlineMatch = part.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+      if (imgInlineMatch) {
+        const [, alt, url] = imgInlineMatch;
+        return (
+          <span key={key} className="chat-media-card inline">
+            <span
+              className="chat-media-img-frame"
+              role="button"
+              tabIndex={0}
+              onClick={() => onPreviewImage?.(url, alt)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onPreviewImage?.(url, alt);
+                }
+              }}
+              title="Click to view image in full screen"
+              aria-label={`View ${alt || 'image'} full screen`}
+            >
+              <img
+                src={url}
+                alt={alt || 'Visual Preview'}
+                className="chat-media-img"
+                loading="lazy"
+              />
+            </span>
+            {alt && <span className="chat-media-caption">{alt}</span>}
+          </span>
+        );
+      }
 
       // Explicit copy pill: [copy: text](display) or [copy: text]
       const copyMatch = part.match(/^\[copy:\s*([^\]]+)\](?:\(([^)]+)\))?$/);
@@ -298,7 +345,9 @@ export default function ChatMessageItem({ message, onNavigate }: ChatMessageItem
       // Standard Markdown Link: [label](url)
       const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
       if (linkMatch) {
-        const [, label, url] = linkMatch;
+        let [, label, url] = linkMatch;
+        label = label.replace(/^button:\s*/i, '').trim();
+        if (!label) return null;
         const isInternal = url.startsWith('/');
         if (isInternal) {
           return (
@@ -360,8 +409,18 @@ export default function ChatMessageItem({ message, onNavigate }: ChatMessageItem
   return (
     <div className={`chat-message-row ${isAssistant ? 'assistant' : 'user'}`}>
       {isAssistant && (
-        <div className="chat-avatar-mini" title="Kivo AI">
-          <ChatMascot size={26} label="Kivo AI Avatar" />
+        <div className="chat-avatar-mini" title="Kairo AI">
+          <ChatMascot
+            size={24}
+            shape="square"
+            state="idle"
+            paused={true}
+            interactive={false}
+            antenna={true}
+            floorShadow={false}
+            useSvgAvatar={true}
+            label="Kairo AI"
+          />
         </div>
       )}
 
