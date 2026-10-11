@@ -2,6 +2,8 @@ export const config = {
   runtime: 'edge',
 };
 
+declare const process: { env: Record<string, string | undefined> };
+
 const GEMINI_API_KEY =
   (process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || '').trim();
 
