@@ -39,9 +39,12 @@ function setCachedData(period: AnalyticsPeriod, data: AnalyticsData) {
 }
 
 export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
-  // Initialize with cached server data if available so there is ZERO number flicker on refresh
-  const [data, setData] = useState<AnalyticsData | null>(() => getCachedData(period));
-  const [loading, setLoading] = useState(!data);
+  // Store loaded period data in a dictionary for instant 0ms switching without cascading renders
+  const [dataMap, setDataMap] = useState<Partial<Record<AnalyticsPeriod, AnalyticsData>>>(() => {
+    const initial = getCachedData(period);
+    return initial ? { [period]: initial } : {};
+  });
+  const [isNetworkLoading, setIsNetworkLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const isFetchingRef = useRef(false);
@@ -50,16 +53,11 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
     setRefreshKey((k) => k + 1);
   }, []);
 
-  // 1. Instantaneous 0ms switch when clicking 24H, 7D, or 30D tabs
-  const [prevPeriod, setPrevPeriod] = useState(period);
-  if (prevPeriod !== period) {
-    setPrevPeriod(period);
-    const cached = getCachedData(period);
-    setData(cached);
-    setLoading(!cached);
-  }
+  // Instantaneous 0ms switch: derive active data directly from map or cache
+  const data = dataMap[period] ?? getCachedData(period);
+  const loading = !data || isNetworkLoading;
 
-  // 2. Prefetch all 3 periods in the background after initial render has settled
+  // 1. Prefetch all 3 periods in the background after initial render has settled
   useEffect(() => {
     const timer = setTimeout(() => {
       const periodsToPrefetch: AnalyticsPeriod[] = ['24h', '7d', '30d'];
@@ -69,6 +67,7 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
           .then((json) => {
             if (json && Array.isArray(json.series)) {
               setCachedData(p, json);
+              setDataMap((prev) => ({ ...prev, [p]: json }));
             }
           })
           .catch(() => {});
@@ -78,8 +77,7 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
     return () => clearTimeout(timer);
   }, []);
 
-
-  // 3. Window focus listener: refetch when user returns to tab
+  // 2. Window focus listener: refetch when user returns to tab
   useEffect(() => {
     const handleFocus = () => {
       refetch();
@@ -90,24 +88,25 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
     };
   }, [refetch]);
 
-  // 4. Handle local pageview events (navigation within SPA)
+  // 3. Handle local pageview events (navigation within SPA)
   useEffect(() => {
     const handleUpdate = () => {
-      setData((prev) => {
-        if (!prev) return null;
-        const nextPv = prev.pageviews + 1;
-        const nextSeries = prev.series.map((pt, i) => {
-          if (i === prev.series.length - 1) {
+      setDataMap((prev) => {
+        const current = prev[period] ?? getCachedData(period);
+        if (!current) return prev;
+        const nextPv = current.pageviews + 1;
+        const nextSeries = current.series.map((pt, i) => {
+          if (i === current.series.length - 1) {
             return { ...pt, pageviews: pt.pageviews + 1 };
           }
           return pt;
         });
 
-        const uvGrowth = calculateAccurateGrowth(prev.visitors, 0, nextSeries, 'visitors');
+        const uvGrowth = calculateAccurateGrowth(current.visitors, 0, nextSeries, 'visitors');
         const pvGrowth = calculateAccurateGrowth(nextPv, 0, nextSeries, 'pageviews');
 
         const updated: AnalyticsData = {
-          ...prev,
+          ...current,
           pageviews: nextPv,
           series: nextSeries,
           growthVisitors: uvGrowth.text,
@@ -119,7 +118,7 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
         };
 
         setCachedData(period, updated);
-        return updated;
+        return { ...prev, [period]: updated };
       });
 
       // Refetch from server in background to sync authoritative state
@@ -132,7 +131,7 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
     };
   }, [period, refetch]);
 
-  // 5. Fetch accurate analytics from server API for active period
+  // 4. Fetch accurate analytics from server API for active period
   useEffect(() => {
     let ignore = false;
 
@@ -141,10 +140,10 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
       isFetchingRef.current = true;
       setError(null);
 
-      // Only show loading if we don't even have cached data
+      // Only show network loading if we don't have cached data for this period
       const cached = getCachedData(period);
       if (!cached) {
-        setLoading(true);
+        setIsNetworkLoading(true);
       }
 
       try {
@@ -159,7 +158,7 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
 
         const json = (await response.json()) as AnalyticsData;
         if (!ignore && json && typeof json === 'object' && Array.isArray(json.series)) {
-          setData(json);
+          setDataMap((prev) => ({ ...prev, [period]: json }));
           setCachedData(period, json);
         }
       } catch (err: any) {
@@ -168,7 +167,7 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
         }
       } finally {
         if (!ignore) {
-          setLoading(false);
+          setIsNetworkLoading(false);
           isFetchingRef.current = false;
         }
       }

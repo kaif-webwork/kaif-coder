@@ -1,6 +1,6 @@
 export const userImages = {
   profile: {
-    avatar: '/images/profile/pfp-latest.jpg?v=2',
+    avatar: '/images/branding/kaifcoder-full-logo.jpg',
     qrCode: '/images/profile/qr-code.svg',
   },
   branding: {

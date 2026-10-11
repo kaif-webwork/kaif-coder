@@ -128,6 +128,12 @@ function checkAnalyticsRateLimit(ip: string, maxRequests = 80, windowMs = 60000)
   return true;
 }
 
+function safeInt(val: string | null | undefined): number {
+  if (!val) return 0;
+  const n = parseInt(val, 10);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
 export default async function handler(req: Request) {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -165,8 +171,8 @@ export default async function handler(req: Request) {
       getVal('tot_uv'),
       getVal('tot_pv'),
     ]);
-    const totUv = Math.max(0, parseInt(rawTotUv || '0', 10));
-    const totPv = Math.max(0, parseInt(rawTotPv || '0', 10));
+    const totUv = safeInt(rawTotUv);
+    const totPv = safeInt(rawTotPv);
 
     if (period === '24h') {
       // 24H: Exact hourly metrics for the last 24 hours
@@ -187,15 +193,15 @@ export default async function handler(req: Request) {
 
       const values = await Promise.all(keysToFetch.map(getVal));
 
-      const rawTodayUv = parseInt(values[points * 2] || '0', 10);
-      const rawTodayPv = parseInt(values[points * 2 + 1] || '0', 10);
+      const rawTodayUv = safeInt(values[points * 2]);
+      const rawTodayPv = safeInt(values[points * 2 + 1]);
 
       let hourlyUvSum = 0;
       let hourlyPvSum = 0;
 
       const series = timestamps.map((timestamp, i) => {
-        const uv = parseInt(values[i * 2] || '0', 10);
-        const pv = parseInt(values[i * 2 + 1] || '0', 10);
+        const uv = safeInt(values[i * 2]);
+        const pv = safeInt(values[i * 2 + 1]);
         hourlyUvSum += uv;
         hourlyPvSum += pv;
         return { timestamp, pageviews: pv, visitors: uv };
@@ -252,8 +258,8 @@ export default async function handler(req: Request) {
       let periodPvSum = 0;
 
       const series = timestamps.map((timestamp, i) => {
-        const uv = parseInt(values[i * 2] || '0', 10);
-        const pv = parseInt(values[i * 2 + 1] || '0', 10);
+        const uv = safeInt(values[i * 2]);
+        const pv = safeInt(values[i * 2 + 1]);
         periodUvSum += uv;
         periodPvSum += pv;
         return { timestamp, pageviews: pv, visitors: uv };
@@ -312,8 +318,8 @@ export default async function handler(req: Request) {
       let periodPvSum = 0;
 
       const series = timestamps.map((timestamp, i) => {
-        const uv = parseInt(values[i * 2] || '0', 10);
-        const pv = parseInt(values[i * 2 + 1] || '0', 10);
+        const uv = safeInt(values[i * 2]);
+        const pv = safeInt(values[i * 2 + 1]);
         periodUvSum += uv;
         periodPvSum += pv;
         return { timestamp, pageviews: pv, visitors: uv };
