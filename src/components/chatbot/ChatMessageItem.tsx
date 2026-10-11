@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { FiCopy, FiCheck } from 'react-icons/fi';
+import { FiCopy, FiCheck, FiArrowUpRight } from 'react-icons/fi';
 import { type ChatMessage } from './knowledge';
 import ChatMascot from './ChatMascot';
 
@@ -8,6 +8,44 @@ interface ChatMessageItemProps {
   message: ChatMessage;
   onNavigate?: () => void;
   onPreviewImage?: (src: string, alt?: string) => void;
+}
+
+/**
+ * Resolves a clean, action-oriented label for navigation and redirect links.
+ * Strictly guarantees that words like 'button' or 'buttons' are NEVER shown.
+ */
+function getSmartActionLabel(rawLabel: string, url: string): string {
+  // Strip any 'button' or 'buttons' or 'action' text completely
+  let label = (rawLabel || '')
+    .replace(/\[\/?(?:button|action|nav|redirect)\]/gi, '')
+    .replace(/\bbuttons?\b/gi, '')
+    .replace(/^[:\s-]+|[:\s-]+$/g, '')
+    .trim();
+
+  if (label.length > 0) {
+    return label;
+  }
+
+  const cleanUrl = url.toLowerCase();
+  if (cleanUrl.includes('adzero.apk') || cleanUrl.endsWith('.apk')) return 'Download AdZero APK';
+  if (cleanUrl.includes('/projects/adzero')) return 'Explore AdZero';
+  if (cleanUrl.includes('/projects')) return 'View All Projects';
+  if (cleanUrl.includes('/certificates')) return 'View Certificates';
+  if (cleanUrl.includes('sheryians.com')) return 'Verify Sheryians Credential';
+  if (cleanUrl.includes('aptrack.online') || cleanUrl.includes('maac')) return 'Verify MAAC Credential';
+  if (cleanUrl.includes('/resume')) return 'View Resume';
+  if (cleanUrl.includes('/analytics')) return 'Live Telemetry';
+  if (cleanUrl.includes('/uses')) return 'Tools & Setup';
+  if (cleanUrl.includes('/blogs/how-to-plan-a-project')) return 'Read Planning Guide';
+  if (cleanUrl.includes('/blogs')) return 'Read Blogs';
+  if (cleanUrl.includes('/support') || cleanUrl.includes('#contact') || cleanUrl.includes('/contact')) return 'Get in Touch';
+  if (cleanUrl.includes('github.com/kaif-webwork/adzero')) return 'AdZero Repository';
+  if (cleanUrl.includes('github.com')) return 'GitHub Profile';
+  if (cleanUrl.includes('linkedin.com')) return 'LinkedIn Profile';
+  if (cleanUrl.startsWith('mailto:')) return 'Send Email';
+  if (cleanUrl === '/' || cleanUrl === '/home') return 'Portfolio Home';
+
+  return 'Explore';
 }
 
 function InlineCopyPill({
@@ -71,13 +109,13 @@ export default function ChatMessageItem({
 
   const handleCopy = async () => {
     try {
-      // Strip special card markers before copying
+      // Strip special card markers and buttons/actions before copying
       const cleanText = message.text
+        .replace(/^[ \t]*(?:#{1,6}[ \t]*)?(?:here are (?:some )?)?(?:quick |relevant |navigation |redirect |action )?buttons?:?[ \t]*$/gim, '')
         .replace(/:::card\s*([^\n]*)\n/g, '$1:\n')
         .replace(/:::/g, '')
         .replace(/\[tags:\s*([^\]]+)\]/g, '$1')
-        .replace(/\[button:\s*\](?:\([^)]*\))?/g, '')
-        .replace(/\[button:\s*([^\]]+)\](?:\([^)]+\))?/g, '$1')
+        .replace(/\[(?:action|button|nav|redirect):\s*([^\]]*)\]\(([^)]+)\)/gi, (_m, lbl, u) => `${getSmartActionLabel(lbl, u)}: ${u}`)
         .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '[Image: $1]');
 
       if (navigator?.clipboard?.writeText) {
@@ -104,11 +142,13 @@ export default function ChatMessageItem({
    * Splits message into cards (:::card ... :::), action buttons, headings, and standard markdown.
    */
   const renderMessageContent = (rawText: string) => {
-    // Completely strip any stray or legacy [button: ...] markers so buttons never render
+    // 1. Sanitize text:
+    // Strip any lines containing headings like "Buttons:", "Navigation Buttons:", "Quick Buttons:", etc.
+    // Also convert legacy [button: ...] or [nav: ...] or [redirect: ...] to [action: ...]
     const sanitizedText = rawText
-      .replace(/\[button:\s*\](?:\([^)]*\))?/gi, '')
-      .replace(/\[button:\s*([^\]]+)\]\(([^)]+)\)/gi, '[$1]($2)')
-      .replace(/\[button:\s*([^\]]+)\]/gi, '$1');
+      .replace(/^[ \t]*(?:#{1,6}[ \t]*)?(?:here are (?:some )?)?(?:quick |relevant |navigation |redirect |action )?buttons?:?[ \t]*$/gim, '')
+      .replace(/\[(?:button|action|nav|redirect):\s*\](?:\([^)]*\))?/gi, '')
+      .replace(/\[(?:button|nav|redirect):\s*([^\]]*)\]\(([^)]+)\)/gi, '[action: $1]($2)');
 
     const cardRegex = /:::card\s*([^\n]*)\n([\s\S]*?):::/g;
     const segments: Array<{ type: 'card' | 'text'; title?: string; body: string }> = [];
@@ -211,6 +251,96 @@ export default function ChatMessageItem({
         );
       }
 
+      // Action Navigation/Redirect Buttons line: [action: Label](url) or bulleted - [action: Label](url)
+      // or multiple action buttons on the same line: [action: ...](...) [action: ...](...)
+      const hasActionTag = /\[action:\s*[^\]]*\]\([^)]+\)/i.test(trimmed);
+      const isPureActionLine =
+        hasActionTag &&
+        trimmed
+          .replace(/^[•\-*]\s*/, '')
+          .replace(/\[action:\s*[^\]]*\]\([^)]+\)/gi, '')
+          .trim().length === 0;
+
+      if (isPureActionLine) {
+        const actionRegex = /\[action:\s*([^\]]*)\]\(([^)]+)\)/gi;
+        const actions: Array<{ label: string; url: string }> = [];
+        let m: RegExpExecArray | null;
+        while ((m = actionRegex.exec(trimmed)) !== null) {
+          actions.push({
+            label: getSmartActionLabel(m[1], m[2]),
+            url: m[2].trim(),
+          });
+        }
+
+        return (
+          <div key={lineKey} className="chat-actions-group">
+            {actions.map((act, actIdx) => {
+              const isInternal = act.url.startsWith('/') || act.url.startsWith('#');
+              if (isInternal) {
+                return (
+                  <Link
+                    key={`${lineKey}-act-${actIdx}`}
+                    to={act.url}
+                    className="chat-action-btn internal"
+                    onClick={onNavigate}
+                  >
+                    <span className="chat-action-btn-text">{act.label}</span>
+                    <FiArrowUpRight className="chat-action-btn-icon" />
+                  </Link>
+                );
+              }
+              return (
+                <a
+                  key={`${lineKey}-act-${actIdx}`}
+                  href={act.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="chat-action-btn external"
+                >
+                  <span className="chat-action-btn-text">{act.label}</span>
+                  <FiArrowUpRight className="chat-action-btn-icon" />
+                </a>
+              );
+            })}
+          </div>
+        );
+      }
+
+      // Standalone single markdown link line: - [Label](url) or [Label](url)
+      const pureLinkMatch = trimmed.match(/^([•\-*]\s*)?\[([^\]]+)\]\(([^)]+)\)$/);
+      if (pureLinkMatch) {
+        const rawLabel = pureLinkMatch[2];
+        const url = pureLinkMatch[3].trim();
+        const label = getSmartActionLabel(rawLabel, url);
+        const isInternal = url.startsWith('/') || url.startsWith('#');
+        return (
+          <div key={lineKey} className="chat-actions-group">
+            {isInternal ? (
+              <Link
+                key={`${lineKey}-purelink`}
+                to={url}
+                className="chat-action-btn internal"
+                onClick={onNavigate}
+              >
+                <span className="chat-action-btn-text">{label}</span>
+                <FiArrowUpRight className="chat-action-btn-icon" />
+              </Link>
+            ) : (
+              <a
+                key={`${lineKey}-purelink`}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="chat-action-btn external"
+              >
+                <span className="chat-action-btn-text">{label}</span>
+                <FiArrowUpRight className="chat-action-btn-icon" />
+              </a>
+            )}
+          </div>
+        );
+      }
+
       // Tags line: [tags: React, TypeScript, Next.js]
       const tagsMatch = trimmed.match(/^\[tags:\s*([^\]]+)\]$/);
       if (tagsMatch) {
@@ -285,7 +415,7 @@ export default function ChatMessageItem({
    * Inline Markdown Parser: parses copy pills, emails, bold, italic, code, links
    */
   const parseInline = (text: string, parentKey: string) => {
-    const tokenRegex = /(!\[[^\]]*\]\([^)]+\)|\[copy:\s*[^\]]+\](?:\([^)]+\))?|\[[^\]]+\]\([^)]+\)|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+    const tokenRegex = /(!\[[^\]]*\]\([^)]+\)|\[action:\s*[^\]]*\]\([^)]+\)|\[copy:\s*[^\]]+\](?:\([^)]+\))?|\[[^\]]+\]\([^)]+\)|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
     const parts = text.split(tokenRegex);
 
     return parts.map((part, idx) => {
@@ -342,13 +472,46 @@ export default function ChatMessageItem({
         return <InlineCopyPill key={key} text={part} />;
       }
 
+      // Inline Action Button: [action: label](url)
+      const actionInlineMatch = part.match(/^\[action:\s*([^\]]*)\]\(([^)]+)\)$/i);
+      if (actionInlineMatch) {
+        const [, rawLabel, url] = actionInlineMatch;
+        const label = getSmartActionLabel(rawLabel, url);
+        const isInternal = url.startsWith('/') || url.startsWith('#');
+        if (isInternal) {
+          return (
+            <Link
+              key={key}
+              to={url}
+              className="chat-action-btn inline internal"
+              onClick={onNavigate}
+            >
+              <span className="chat-action-btn-text">{label}</span>
+              <FiArrowUpRight className="chat-action-btn-icon" />
+            </Link>
+          );
+        }
+        return (
+          <a
+            key={key}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="chat-action-btn inline external"
+          >
+            <span className="chat-action-btn-text">{label}</span>
+            <FiArrowUpRight className="chat-action-btn-icon" />
+          </a>
+        );
+      }
+
       // Standard Markdown Link: [label](url)
       const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
       if (linkMatch) {
-        let [, label, url] = linkMatch;
-        label = label.replace(/^button:\s*/i, '').trim();
+        let [, rawLabel, url] = linkMatch;
+        const label = getSmartActionLabel(rawLabel, url);
         if (!label) return null;
-        const isInternal = url.startsWith('/');
+        const isInternal = url.startsWith('/') || url.startsWith('#');
         if (isInternal) {
           return (
             <Link
@@ -357,7 +520,8 @@ export default function ChatMessageItem({
               className="chat-link-pill internal"
               onClick={onNavigate}
             >
-              {label} ↗
+              <span>{label}</span>
+              <FiArrowUpRight className="chat-link-icon" />
             </Link>
           );
         }
@@ -369,7 +533,8 @@ export default function ChatMessageItem({
             rel="noopener noreferrer"
             className="chat-link-pill external"
           >
-            {label} ↗
+            <span>{label}</span>
+            <FiArrowUpRight className="chat-link-icon" />
           </a>
         );
       }

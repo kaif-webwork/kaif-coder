@@ -823,6 +823,75 @@
   margin-bottom: 3px;
 }
 
+/* Navigation & Redirect Action Buttons */
+.chat-actions-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 9px 0 5px;
+  align-items: center;
+}
+
+.chat-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #14151b;
+  border: 1px solid #252834;
+  color: #e4e4e7;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 0.77rem;
+  font-weight: 500;
+  line-height: 1.25;
+  padding: 6px 13px;
+  border-radius: 9999px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chat-action-btn:hover {
+  background: #1b1c24;
+  border-color: var(--mascot-daily-trim, #38bdf8);
+  color: #ffffff;
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 10px rgba(56, 189, 248, 0.15);
+}
+
+.chat-action-btn:active {
+  transform: translateY(0);
+}
+
+.chat-action-btn.inline {
+  display: inline-flex;
+  vertical-align: middle;
+  padding: 3px 9px;
+  font-size: 0.72rem;
+  margin: 1px 3px;
+  border-radius: 6px;
+}
+
+.chat-action-btn-text {
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.chat-action-btn-icon {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  flex-shrink: 0;
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+
+.chat-action-btn:hover .chat-action-btn-icon {
+  color: var(--mascot-daily-trim, #38bdf8);
+  transform: translate(1.5px, -1.5px);
+}
+
 /* Link Pills */
 .chat-link-pill {
   display: inline-flex;
@@ -833,7 +902,7 @@
   color: #f4f4f5;
   font-size: 0.72rem;
   font-weight: 500;
-  padding: 2px 7px;
+  padding: 2.5px 8px;
   border-radius: 5px;
   text-decoration: none;
   margin: 0 2px;
@@ -842,8 +911,20 @@
 
 .chat-link-pill:hover {
   background: #1b1c24;
-  border-color: #383a45;
+  border-color: var(--mascot-daily-trim, #383a45);
   color: #ffffff;
+}
+
+.chat-link-icon {
+  font-size: 0.74rem;
+  color: #8b8f98;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.chat-link-pill:hover .chat-link-icon {
+  color: #ffffff;
+  transform: translate(1px, -1px);
 }
 
 /* Copyable Detail Pills */
@@ -1284,6 +1365,16 @@
 
   .chat-lightbox-full-img {
     max-height: 70dvh !important;
+  }
+
+  .chat-actions-group {
+    gap: 6px !important;
+    margin: 8px 0 4px !important;
+  }
+
+  .chat-action-btn {
+    padding: 7px 13px !important;
+    font-size: 0.78rem !important;
   }
 }
 
