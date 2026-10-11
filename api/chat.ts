@@ -99,10 +99,10 @@ export default async function handler(req: Request): Promise<Response> {
       : undefined,
     contents,
     generationConfig: {
-      temperature: 0.4,
+      temperature: 0.65,
       topK: 40,
-      topP: 0.9,
-      maxOutputTokens: 250,
+      topP: 0.95,
+      maxOutputTokens: 380,
     },
   };
 
