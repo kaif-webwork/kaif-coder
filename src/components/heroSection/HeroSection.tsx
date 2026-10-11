@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { RiVerifiedBadgeFill } from 'react-icons/ri';
-import { HiOutlineEnvelope, HiOutlineSparkles } from 'react-icons/hi2';
+import { HiOutlineEnvelope } from 'react-icons/hi2';
 import { FaGithub, FaInstagram, FaLinkedinIn } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { HiOutlineDocumentDownload } from 'react-icons/hi';
@@ -8,6 +8,8 @@ import { IoLocationOutline, IoTimeOutline } from 'react-icons/io5';
 import PixelTransition from '../pixelTransition/PixelTransition';
 import { userImages } from '../../data/images';
 import { playQrToggleSound, playClickSound } from '../../utils/sound';
+import ChatMascot from '../chatbot/ChatMascot';
+import { triggerHaptic } from '../../utils/haptics';
 import './HeroSection.css';
 
 export default function HeroSection() {
@@ -171,19 +173,61 @@ export default function HeroSection() {
           </a>
         </div>
 
-        {/* Blurred Mystery / Coming Soon Card */}
-        <div className="hero-social-card hero-blurred-card" title="Coming Soon">
-          <div className="hero-card-icon-box blurred-icon-bg">
-            <HiOutlineSparkles className="sparkle-pulse" />
+        {/* Kairo AI Companion Live Card */}
+        <div
+          className="hero-social-card hero-kairo-card"
+          title="Chat with Kairo AI Companion"
+          onClick={() => {
+            triggerHaptic('medium');
+            playClickSound();
+            window.dispatchEvent(new CustomEvent('open-kairo-ai'));
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              triggerHaptic('medium');
+              playClickSound();
+              window.dispatchEvent(new CustomEvent('open-kairo-ai'));
+            }
+          }}
+        >
+          <div className="hero-card-icon-box kairo-icon-bg">
+            <ChatMascot
+              size={24}
+              shape="square"
+              state="happy"
+              paused={false}
+              interactive={false}
+              antenna={true}
+              floorShadow={false}
+              label="Kairo AI Companion"
+            />
           </div>
           <div className="hero-card-details">
-            <div className="hero-card-name">Something exciting...</div>
+            <div className="hero-card-name">
+              Kairo AI
+              <span className="hero-kairo-live-badge">AI</span>
+            </div>
             <div className="hero-card-sub">
-              <span className="hero-online-indicator orange" />
-              Cooking up soon
+              <span className="hero-online-indicator green" />
+              Live Companion
             </div>
           </div>
-          <span className="hero-card-btn blurred-btn">Soon ✦</span>
+          <button
+            type="button"
+            className="hero-card-btn kairo-btn"
+            aria-label="Open Kairo AI chat"
+            onClick={(e) => {
+              e.stopPropagation();
+              triggerHaptic('medium');
+              playClickSound();
+              window.dispatchEvent(new CustomEvent('open-kairo-ai'));
+            }}
+          >
+            Chat ✦
+          </button>
         </div>
       </div>
 
