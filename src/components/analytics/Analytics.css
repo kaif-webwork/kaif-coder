@@ -204,12 +204,12 @@
 
 .analytics-chart-render .echarts-tooltip,
 .analytics-chart-canvas-container .echarts-tooltip {
-  background: rgba(11, 13, 14, 0.75) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(190%) !important;
-  backdrop-filter: blur(16px) saturate(190%) !important;
-  border: 1px dashed rgba(255, 255, 255, 0.18) !important;
-  border-radius: 8px !important;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+  background: rgba(11, 13, 14, 0.45) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px dashed #383838 !important;
+  border-radius: 0px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
   pointer-events: none !important;
   z-index: 10 !important;
 }

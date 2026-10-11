@@ -273,18 +273,18 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
             appendToBody: false,
             enterable: false,
             hideDelay: 200,
-            transitionDuration: 0.12,
-            backgroundColor: 'rgba(11, 13, 14, 0.75)',
-            borderColor: 'rgba(255, 255, 255, 0.16)',
+            transitionDuration: 0.1,
+            backgroundColor: 'rgba(11, 13, 14, 0.45)',
+            borderColor: '#383838',
             borderWidth: 1,
             borderType: 'dashed',
-            padding: [12, 16],
+            padding: [10, 14],
             extraCssText:
-              'background: rgba(11, 13, 14, 0.78) !important; -webkit-backdrop-filter: blur(16px) saturate(190%) !important; backdrop-filter: blur(16px) saturate(190%) !important; border: 1px dashed rgba(255, 255, 255, 0.18) !important; border-radius: 8px !important; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important; pointer-events: none; z-index: 10 !important; max-width: calc(100% - 16px);',
+              'background: rgba(11, 13, 14, 0.45) !important; -webkit-backdrop-filter: blur(12px) !important; backdrop-filter: blur(12px) !important; border: 1px dashed #383838 !important; border-radius: 0px !important; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important; pointer-events: none; z-index: 10 !important; max-width: calc(100% - 16px);',
             axisPointer: {
               type: 'line',
               lineStyle: {
-                color: 'rgba(255, 255, 255, 0.22)',
+                color: '#383838',
                 type: 'dashed',
                 width: 1,
               },
@@ -321,14 +321,14 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
               }
 
               return `
-                <div style="font-family: 'Figtree', sans-serif; min-width: 148px; user-select: none;">
-                  <div style="font-size: 13px; font-weight: 700; color: #ffffff; margin-bottom: 8px; line-height: 1.2; letter-spacing: -0.2px; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);">
+                <div style="font-family: 'Figtree', sans-serif; min-width: 145px; user-select: none;">
+                  <div style="font-size: 13px; font-weight: 700; color: #ffffff; margin-bottom: 8px; line-height: 1.2;">
                     ${dateStr}
                   </div>
-                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 6px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 5px;">
                     <div style="display: flex; align-items: center; gap: 7px;">
-                      <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #2dd4bf; flex-shrink: 0; box-shadow: 0 0 10px rgba(45, 212, 191, 0.65);"></span>
-                      <span style="font-size: 12px; color: #9ca3af; font-weight: 450;">Visitors</span>
+                      <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #2dd4bf; flex-shrink: 0;"></span>
+                      <span style="font-size: 12px; color: #9ca3af; font-weight: 400;">Visitors</span>
                     </div>
                     <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #ffffff; letter-spacing: -0.2px;">
                       ${visitors.toLocaleString()}
@@ -336,8 +336,8 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
                   </div>
                   <div style="display: flex; align-items: center; justify-content: space-between; gap: 24px;">
                     <div style="display: flex; align-items: center; gap: 7px;">
-                      <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #f43f5e; flex-shrink: 0; box-shadow: 0 0 10px rgba(244, 63, 94, 0.65);"></span>
-                      <span style="font-size: 12px; color: #9ca3af; font-weight: 450;">Page Views</span>
+                      <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #f43f5e; flex-shrink: 0;"></span>
+                      <span style="font-size: 12px; color: #9ca3af; font-weight: 400;">Page Views</span>
                     </div>
                     <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #ffffff; letter-spacing: -0.2px;">
                       ${pageviews.toLocaleString()}
