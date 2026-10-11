@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { LuSettings } from 'react-icons/lu';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import AnalyticsChart from './AnalyticsChart';
+import { triggerHaptic } from '../../utils/haptics';
+import { playClickSound } from '../../utils/sound';
 import './Analytics.css';
 
 type Period = '24h' | '7d' | '30d';
@@ -9,6 +11,13 @@ type Period = '24h' | '7d' | '30d';
 export default function AnalyticsDashboard() {
   const [period, setPeriod] = useState<Period>('7d');
   const { data, loading } = useAnalytics(period);
+
+  const handleSelectPeriod = (newPeriod: Period) => {
+    if (newPeriod === period) return;
+    triggerHaptic('medium');
+    playClickSound();
+    setPeriod(newPeriod);
+  };
 
   const visitorsCount = data?.visitors ?? 0;
   const pageviewsCount = data?.pageviews ?? 0;
@@ -54,7 +63,7 @@ export default function AnalyticsDashboard() {
             <button
               type="button"
               className={`analytics-period-tab ${period === '24h' ? 'active' : ''}`}
-              onClick={() => setPeriod('24h')}
+              onClick={() => handleSelectPeriod('24h')}
               aria-label="View 24-hour analytics"
               aria-pressed={period === '24h'}
             >
@@ -63,7 +72,7 @@ export default function AnalyticsDashboard() {
             <button
               type="button"
               className={`analytics-period-tab ${period === '7d' ? 'active' : ''}`}
-              onClick={() => setPeriod('7d')}
+              onClick={() => handleSelectPeriod('7d')}
               aria-label="View 7-day analytics"
               aria-pressed={period === '7d'}
             >
@@ -72,7 +81,7 @@ export default function AnalyticsDashboard() {
             <button
               type="button"
               className={`analytics-period-tab ${period === '30d' ? 'active' : ''}`}
-              onClick={() => setPeriod('30d')}
+              onClick={() => handleSelectPeriod('30d')}
               aria-label="View 30-day analytics"
               aria-pressed={period === '30d'}
             >

@@ -5,6 +5,7 @@ import { GridComponent, TooltipComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import { graphic } from 'echarts/core';
 import type { AnalyticsPeriod, AnalyticsSeriesPoint } from '../../data/analytics';
+import { triggerHaptic } from '../../utils/haptics';
 
 // Register only needed ECharts modules to drastically reduce bundle size
 echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
@@ -18,6 +19,7 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts | null>(null);
   const hideTimerRef = useRef<number | null>(null);
+  const lastHapticIndexRef = useRef<number | null>(null);
 
   const hideChartTip = useCallback(() => {
     if (hideTimerRef.current) {
@@ -72,6 +74,7 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
         isScrolling = false;
+        triggerHaptic('light');
       }
     };
 
@@ -88,6 +91,7 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
     };
 
     const handleTouchEnd = () => {
+      lastHapticIndexRef.current = null;
       if (isScrolling) {
         hideChartTip();
         return;
@@ -269,18 +273,18 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
             appendToBody: false,
             enterable: false,
             hideDelay: 200,
-            transitionDuration: 0.1,
-            backgroundColor: '#0b0d0e',
-            borderColor: '#383838',
+            transitionDuration: 0.12,
+            backgroundColor: 'rgba(11, 13, 14, 0.75)',
+            borderColor: 'rgba(255, 255, 255, 0.16)',
             borderWidth: 1,
             borderType: 'dashed',
-            padding: [10, 14],
+            padding: [12, 16],
             extraCssText:
-              'border: 1px dashed #383838 !important; border-radius: 0px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6); pointer-events: none; backdrop-filter: blur(4px); z-index: 10 !important; max-width: calc(100% - 16px);',
+              'background: rgba(11, 13, 14, 0.78) !important; -webkit-backdrop-filter: blur(16px) saturate(190%) !important; backdrop-filter: blur(16px) saturate(190%) !important; border: 1px dashed rgba(255, 255, 255, 0.18) !important; border-radius: 8px !important; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important; pointer-events: none; z-index: 10 !important; max-width: calc(100% - 16px);',
             axisPointer: {
               type: 'line',
               lineStyle: {
-                color: '#383838',
+                color: 'rgba(255, 255, 255, 0.22)',
                 type: 'dashed',
                 width: 1,
               },
@@ -288,6 +292,13 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
             formatter: (params: any) => {
               if (!Array.isArray(params) || params.length === 0) return '';
               const dataIndex = params[0].dataIndex;
+
+              // Crisp haptic feedback on mobile when scrubbing over a new point
+              if (typeof dataIndex === 'number' && dataIndex !== lastHapticIndexRef.current) {
+                lastHapticIndexRef.current = dataIndex;
+                triggerHaptic('selection');
+              }
+
               const point = displaySeries[dataIndex];
               const dateStr = point
                 ? formatTooltipDate(point.timestamp)
@@ -310,14 +321,14 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
               }
 
               return `
-                <div style="font-family: 'Figtree', sans-serif; min-width: 145px; user-select: none;">
-                  <div style="font-size: 13px; font-weight: 700; color: #ffffff; margin-bottom: 8px; line-height: 1.2;">
+                <div style="font-family: 'Figtree', sans-serif; min-width: 148px; user-select: none;">
+                  <div style="font-size: 13px; font-weight: 700; color: #ffffff; margin-bottom: 8px; line-height: 1.2; letter-spacing: -0.2px; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);">
                     ${dateStr}
                   </div>
-                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 5px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 6px;">
                     <div style="display: flex; align-items: center; gap: 7px;">
-                      <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #2dd4bf; flex-shrink: 0;"></span>
-                      <span style="font-size: 12px; color: #9ca3af; font-weight: 400;">Visitors</span>
+                      <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #2dd4bf; flex-shrink: 0; box-shadow: 0 0 10px rgba(45, 212, 191, 0.65);"></span>
+                      <span style="font-size: 12px; color: #9ca3af; font-weight: 450;">Visitors</span>
                     </div>
                     <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #ffffff; letter-spacing: -0.2px;">
                       ${visitors.toLocaleString()}
@@ -325,8 +336,8 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
                   </div>
                   <div style="display: flex; align-items: center; justify-content: space-between; gap: 24px;">
                     <div style="display: flex; align-items: center; gap: 7px;">
-                      <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #f43f5e; flex-shrink: 0;"></span>
-                      <span style="font-size: 12px; color: #9ca3af; font-weight: 400;">Page Views</span>
+                      <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #f43f5e; flex-shrink: 0; box-shadow: 0 0 10px rgba(244, 63, 94, 0.65);"></span>
+                      <span style="font-size: 12px; color: #9ca3af; font-weight: 450;">Page Views</span>
                     </div>
                     <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #ffffff; letter-spacing: -0.2px;">
                       ${pageviews.toLocaleString()}
