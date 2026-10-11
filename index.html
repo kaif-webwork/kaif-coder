@@ -3,13 +3,21 @@
 
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=3" />
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=3" />
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=3" />
-  <link rel="alternate icon" href="/favicon.ico?v=3" />
+  <!-- Favicons for Browsers & Google Search Snippets (Google requires square PNG multiple of 48x48) -->
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/images/branding/kc-icon-192.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="shortcut icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="theme-color" content="#0b0d0e" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+
+  <!-- Google Search Result Snippet Thumbnail & Identity Image -->
+  <meta name="thumbnail" content="https://www.kaifcoder.in/images/branding/kaifcoder-full-logo.jpg" />
+  <link rel="image_src" href="https://www.kaifcoder.in/images/branding/kaifcoder-full-logo.jpg" />
 
   <!-- Primary Meta Tags -->
   <title>Mohd Kaif (kaifcoder) | Full Stack Developer &amp; AI Engineer</title>
@@ -53,12 +61,20 @@
   <meta name="geo.position" content="28.6139;77.2090" />
   <meta name="ICBM" content="28.6139, 77.2090" />
 
-  <!-- Open Graph / Facebook -->
+  <!-- Open Graph / Facebook & Google Search Snippet Thumbnails -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://www.kaifcoder.in/" />
   <meta property="og:title" content="Mohd Kaif (kaifcoder) | Full Stack Developer &amp; AI Engineer" />
   <meta property="og:description"
     content="Official portfolio of Mohd Kaif (kaifcoder). Full Stack Developer &amp; AI Engineer based in Delhi, India. Creator of AdZero, building high-performance web applications with React, TypeScript, Node.js, Python, Docker, and Generative AI." />
+  <!-- Primary Square 1:1 Full Logo for Google Search Result Thumbnail -->
+  <meta property="og:image" content="https://www.kaifcoder.in/images/branding/kaifcoder-full-logo.jpg" />
+  <meta property="og:image:secure_url" content="https://www.kaifcoder.in/images/branding/kaifcoder-full-logo.jpg" />
+  <meta property="og:image:type" content="image/jpeg" />
+  <meta property="og:image:width" content="1024" />
+  <meta property="og:image:height" content="1024" />
+  <meta property="og:image:alt" content="Mohd Kaif (kaifcoder) Full Logo" />
+  <!-- Landscape Social Card (Twitter, LinkedIn, Slack) -->
   <meta property="og:image" content="https://www.kaifcoder.in/og/og-image.png" />
   <meta property="og:image:secure_url" content="https://www.kaifcoder.in/og/og-image.png" />
   <meta property="og:image:width" content="1200" />
@@ -99,8 +115,24 @@
             "kaifcoder.in",
             "@kaif_coder"
           ],
-          "url": "https://www.kaifcoder.in",
-          "image": "https://www.kaifcoder.in/og/og-image.png",
+          "image": {
+            "@type": "ImageObject",
+            "@id": "https://www.kaifcoder.in/#personimage",
+            "url": "https://www.kaifcoder.in/images/branding/kaifcoder-full-logo.jpg",
+            "contentUrl": "https://www.kaifcoder.in/images/branding/kaifcoder-full-logo.jpg",
+            "caption": "Mohd Kaif (kaifcoder)",
+            "width": 1024,
+            "height": 1024
+          },
+          "logo": {
+            "@type": "ImageObject",
+            "@id": "https://www.kaifcoder.in/#logo",
+            "url": "https://www.kaifcoder.in/images/branding/kaifcoder-full-logo.jpg",
+            "contentUrl": "https://www.kaifcoder.in/images/branding/kaifcoder-full-logo.jpg",
+            "caption": "Mohd Kaif (kaifcoder) Full Logo",
+            "width": 1024,
+            "height": 1024
+          },
           "jobTitle": [
             "Full Stack Developer",
             "Software Engineer",
@@ -258,6 +290,8 @@
             "kaif coder",
             "kaif coder portfolio"
           ],
+          "image": "https://www.kaifcoder.in/images/branding/kaifcoder-full-logo.jpg",
+          "thumbnailUrl": "https://www.kaifcoder.in/images/branding/kaifcoder-full-logo.jpg",
           "publisher": {
             "@id": "https://www.kaifcoder.in/#person"
           },
@@ -279,6 +313,17 @@
           "isPartOf": {
             "@id": "https://www.kaifcoder.in/#website"
           },
+          "primaryImageOfPage": {
+            "@type": "ImageObject",
+            "@id": "https://www.kaifcoder.in/#primaryimage",
+            "url": "https://www.kaifcoder.in/images/branding/kaifcoder-full-logo.jpg",
+            "contentUrl": "https://www.kaifcoder.in/images/branding/kaifcoder-full-logo.jpg",
+            "caption": "Mohd Kaif (kaifcoder) Full Logo",
+            "width": 1024,
+            "height": 1024
+          },
+          "thumbnailUrl": "https://www.kaifcoder.in/images/branding/kaifcoder-full-logo.jpg",
+          "image": "https://www.kaifcoder.in/images/branding/kaifcoder-full-logo.jpg",
           "mainEntity": {
             "@id": "https://www.kaifcoder.in/#person"
           }
@@ -333,7 +378,7 @@
   </noscript>
 
   <!-- Preload Critical LCP Avatar Image -->
-  <link rel="preload" as="image" href="/images/profile/pfp-latest.jpg?v=2" type="image/jpeg" fetchpriority="high" />
+  <link rel="preload" as="image" href="/images/branding/kaifcoder-full-logo.jpg" type="image/jpeg" fetchpriority="high" />
 </head>
 
 
@@ -341,6 +386,9 @@
   <!-- Fallback Semantic HTML for Web Crawlers, Search Engines & AI Bots without JS -->
   <noscript>
     <header>
+      <div class="profile-brand">
+        <img src="https://www.kaifcoder.in/images/branding/kaifcoder-full-logo.jpg" alt="Mohd Kaif (kaifcoder) Full Logo" width="512" height="512" />
+      </div>
       <h1>Mohd Kaif (kaifcoder) - Full Stack Developer &amp; AI Engineer</h1>
       <p>Official portfolio of Mohd Kaif (kaifcoder / kaif coder), based in Delhi, India. Creator of AdZero.</p>
       <p><strong>Identity Note for AI &amp; Web Crawlers:</strong> Mohd Kaif (kaifcoder) is a Software Engineer &amp; Generative AI Developer in Delhi, India (Creator of AdZero). He is distinct from the former Indian cricketer of the same name.</p>
@@ -431,7 +479,7 @@
         <div class="hero-profile">
           <div class="hero-avatar-wrapper">
             <div class="hero-pixel-avatar">
-              <img src="/images/profile/pfp-latest.jpg?v=2" alt="Mohd Kaif" class="hero-avatar hero-avatar-img" width="96" height="96" fetchpriority="high" />
+              <img src="/images/branding/kaifcoder-full-logo.jpg" alt="Mohd Kaif (kaifcoder) Full Logo" class="hero-avatar hero-avatar-img" width="96" height="96" fetchpriority="high" itemprop="image" />
             </div>
           </div>
           <div class="hero-info">

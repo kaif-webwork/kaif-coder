@@ -1,13 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
-        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd
+        http://www.google.com/schemas/sitemap-image/1.1
+        http://www.google.com/schemas/sitemap-image/1.1/sitemap-image.xsd">
   <url>
     <loc>https://www.kaifcoder.in/</loc>
     <lastmod>2026-10-11</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://www.kaifcoder.in/images/branding/kaifcoder-full-logo.jpg</image:loc>
+      <image:title>Mohd Kaif (kaifcoder) Full Logo</image:title>
+      <image:caption>Official full logo and identity of Mohd Kaif (kaifcoder)</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://www.kaifcoder.in/projects</loc>

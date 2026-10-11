@@ -19,7 +19,7 @@ const URL_LIST = [
   `https://${HOST}/support`,
 ];
 
-export default async function handler(req: Request): Promise<Response> {
+export default async function handler(_req: Request): Promise<Response> {
   const payload = {
     host: HOST,
     key: INDEXNOW_KEY,

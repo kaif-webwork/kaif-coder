@@ -7,6 +7,7 @@ export const userImages = {
     kcIcon: '/images/branding/kc-icon.png',
     kcIcon192: '/images/branding/kc-icon-192.png',
     kcIconNative: '/images/branding/kc-icon-native.png',
+    fullLogo: '/images/branding/kaifcoder-full-logo.jpg',
   },
   projects: {
     adzeroThumb: '/images/projects/adzero-thumb.jpg',
