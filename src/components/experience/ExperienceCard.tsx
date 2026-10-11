@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { HiChevronDown, HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
 
 interface ExperienceCardProps {
@@ -25,10 +26,43 @@ export default function ExperienceCard({
   isExpanded,
   onToggle,
 }: ExperienceCardProps) {
+  const touchStartY = useRef<number | null>(null);
+  const isScrolling = useRef<boolean>(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    isScrolling.current = false;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartY.current !== null && Math.abs(e.touches[0].clientY - touchStartY.current) > 8) {
+      isScrolling.current = true;
+    }
+  };
+
+  const handleClick = () => {
+    if (isScrolling.current) return;
+    onToggle();
+  };
+
   return (
     <div className="exp-card">
       <span className={`exp-dot ${status}`} />
-      <div className="exp-header" onClick={onToggle}>
+      <div
+        className="exp-header"
+        role="button"
+        tabIndex={0}
+        aria-expanded={isExpanded}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+      >
         <div className="exp-logo">
           {logoUrl ? (
             <img

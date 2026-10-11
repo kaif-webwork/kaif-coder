@@ -172,12 +172,16 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.cert-large-preview-link:hover {
-  transform: translateY(-2px);
-  border-color: #4f5567;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.85);
+@media (hover: hover) and (pointer: fine) {
+  .cert-large-preview-link:hover {
+    transform: translateY(-2px);
+    border-color: #4f5567;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.85);
+  }
 }
 
 .cert-large-img {
@@ -219,8 +223,10 @@
   pointer-events: none;
 }
 
-.cert-large-preview-link:hover .cert-large-hover-overlay {
-  opacity: 1;
+@media (hover: hover) and (pointer: fine) {
+  .cert-large-preview-link:hover .cert-large-hover-overlay {
+    opacity: 1;
+  }
 }
 
 .cert-large-hover-overlay .overlay-icon {

@@ -75,6 +75,50 @@ export default function ChatWindow({
   const scrollStartX = useRef(0);
   const hasDragged = useRef(false);
 
+  const touchChipsStartX = useRef(0);
+  const touchChipsStartY = useRef(0);
+  const welcomeTouchStartY = useRef(0);
+  const isWelcomeScrolling = useRef(false);
+
+  const handleChipsTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length > 0) {
+      touchChipsStartX.current = e.touches[0].clientX;
+      touchChipsStartY.current = e.touches[0].clientY;
+      hasDragged.current = false;
+    }
+  };
+
+  const handleChipsTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length > 0) {
+      const deltaX = Math.abs(e.touches[0].clientX - touchChipsStartX.current);
+      const deltaY = Math.abs(e.touches[0].clientY - touchChipsStartY.current);
+      if (deltaX > 8 || deltaY > 8) {
+        hasDragged.current = true;
+      }
+    }
+  };
+
+  const handleChipsTouchEnd = () => {
+    setTimeout(() => {
+      hasDragged.current = false;
+    }, 180);
+  };
+
+  const handleWelcomeTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length > 0) {
+      welcomeTouchStartY.current = e.touches[0].clientY;
+      isWelcomeScrolling.current = false;
+    }
+  };
+
+  const handleWelcomeTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length > 0) {
+      if (Math.abs(e.touches[0].clientY - welcomeTouchStartY.current) > 8) {
+        isWelcomeScrolling.current = true;
+      }
+    }
+  };
+
   // Close image preview on Escape key (use capture phase to avoid closing chat window)
   useEffect(() => {
     if (!previewImage) return;
@@ -157,7 +201,7 @@ export default function ChatWindow({
   };
 
   const handlePromptClick = (promptText: string) => {
-    if (hasDragged.current) return;
+    if (hasDragged.current || isWelcomeScrolling.current) return;
     if (soundEnabled) playClickSound();
     onSendMessage(promptText);
   };
@@ -299,7 +343,11 @@ export default function ChatWindow({
               </p>
             </div>
 
-            <div className="chat-welcome-grid">
+            <div
+              className="chat-welcome-grid"
+              onTouchStart={handleWelcomeTouchStart}
+              onTouchMove={handleWelcomeTouchMove}
+            >
               {QUICK_PROMPTS.map((item) => (
                 <button
                   key={item.id}
@@ -374,6 +422,9 @@ export default function ChatWindow({
           onMouseMove={handleChipsMouseMove}
           onMouseUp={handleChipsMouseUp}
           onMouseLeave={handleChipsMouseUp}
+          onTouchStart={handleChipsTouchStart}
+          onTouchMove={handleChipsTouchMove}
+          onTouchEnd={handleChipsTouchEnd}
         >
           {QUICK_PROMPTS.map((item) => (
             <button

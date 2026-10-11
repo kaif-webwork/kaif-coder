@@ -535,7 +535,15 @@
   .hero-avatar-wrapper[data-tooltip]::before,
   .hero-avatar-wrapper[data-tooltip]::after,
   .hero-avatar-wrapper[data-tooltip]:hover::before,
-  .hero-avatar-wrapper[data-tooltip]:hover::after {
+  .hero-avatar-wrapper[data-tooltip]:hover::after,
+  .hero-email-pill[data-tooltip]::before,
+  .hero-email-pill[data-tooltip]::after,
+  .hero-email-pill[data-tooltip]:hover::before,
+  .hero-email-pill[data-tooltip]:hover::after,
+  .hero-icon-btn[data-tooltip]::before,
+  .hero-icon-btn[data-tooltip]::after,
+  .hero-icon-btn[data-tooltip]:hover::before,
+  .hero-icon-btn[data-tooltip]:hover::after {
     display: none !important;
     content: none !important;
     opacity: 0 !important;

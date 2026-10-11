@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import * as echarts from 'echarts/core';
 import { LineChart } from 'echarts/charts';
 import { GridComponent, TooltipComponent } from 'echarts/components';
@@ -17,13 +17,33 @@ interface AnalyticsChartProps {
 export default function AnalyticsChart({ period, series }: AnalyticsChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts | null>(null);
+  const hideTimerRef = useRef<number | null>(null);
+
+  const hideChartTip = useCallback(() => {
+    if (hideTimerRef.current) {
+      window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+    if (chartInstance.current && !chartInstance.current.isDisposed()) {
+      try {
+        chartInstance.current.dispatchAction({ type: 'hideTip' });
+        chartInstance.current.dispatchAction({
+          type: 'updateAxisPointer',
+          currTrigger: 'leave',
+        });
+      } catch {
+        // Suppress dispatch action errors if disposed
+      }
+    }
+  }, []);
 
   // Initialize ECharts instance on mount and handle cleanup on unmount
   useEffect(() => {
-    if (!chartRef.current) return;
+    const container = chartRef.current;
+    if (!container) return;
 
     if (!chartInstance.current || chartInstance.current.isDisposed()) {
-      chartInstance.current = echarts.init(chartRef.current, undefined, {
+      chartInstance.current = echarts.init(container, undefined, {
         renderer: 'canvas',
       });
     }
@@ -38,17 +58,102 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
       }, 100);
     };
 
+    // Mobile touch interaction listeners
+    let touchStartY = 0;
+    let touchStartX = 0;
+    let isScrolling = false;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (hideTimerRef.current) {
+        window.clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+      if (e.touches && e.touches.length > 0) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        isScrolling = false;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches && e.touches.length > 0) {
+        const deltaY = Math.abs(e.touches[0].clientY - touchStartY);
+        const deltaX = Math.abs(e.touches[0].clientX - touchStartX);
+        // If gesture is vertical scroll, dismiss tooltip immediately so page scrolls cleanly
+        if (deltaY > 8 && deltaY > deltaX) {
+          isScrolling = true;
+          hideChartTip();
+        }
+      }
+    };
+
+    const handleTouchEnd = () => {
+      if (isScrolling) {
+        hideChartTip();
+        return;
+      }
+      // On mobile tap, let user see point data, then automatically hide after 1200ms
+      if (hideTimerRef.current) {
+        window.clearTimeout(hideTimerRef.current);
+      }
+      hideTimerRef.current = window.setTimeout(() => {
+        hideChartTip();
+      }, 1200);
+    };
+
+    // Outside tap dismiss
+    const handleOutsideInteraction = (e: Event) => {
+      const target = e.target as Node | null;
+      if (container && target && !container.contains(target)) {
+        hideChartTip();
+      }
+    };
+
+    // Immediate dismiss on scroll or modal events
+    const handleGlobalDismiss = () => {
+      hideChartTip();
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: true });
+    container.addEventListener('touchend', handleTouchEnd, { passive: true });
+    container.addEventListener('touchcancel', hideChartTip, { passive: true });
+
     window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleGlobalDismiss, { passive: true });
+    window.addEventListener('touchstart', handleOutsideInteraction, { passive: true });
+    window.addEventListener('pointerdown', handleOutsideInteraction, { passive: true });
+    window.addEventListener('open-kairo-ai', handleGlobalDismiss);
+    window.addEventListener('open-kivo-ai', handleGlobalDismiss);
+    window.addEventListener('open-kaif-ai', handleGlobalDismiss);
+    window.addEventListener('hide-all-tooltips', handleGlobalDismiss);
 
     return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('touchcancel', hideChartTip);
+
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleGlobalDismiss);
+      window.removeEventListener('touchstart', handleOutsideInteraction);
+      window.removeEventListener('pointerdown', handleOutsideInteraction);
+      window.removeEventListener('open-kairo-ai', handleGlobalDismiss);
+      window.removeEventListener('open-kivo-ai', handleGlobalDismiss);
+      window.removeEventListener('open-kaif-ai', handleGlobalDismiss);
+      window.removeEventListener('hide-all-tooltips', handleGlobalDismiss);
+
       window.clearTimeout(resizeTimer);
+      if (hideTimerRef.current) {
+        window.clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
       if (chartInstance.current && !chartInstance.current.isDisposed()) {
         chartInstance.current.dispose();
       }
       chartInstance.current = null;
     };
-  }, []);
+  }, [hideChartTip]);
 
   // Update chart options smoothly when data or period changes WITHOUT destroying canvas
   useEffect(() => {
@@ -156,14 +261,22 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
             },
           },
           tooltip: {
+            show: true,
             trigger: 'axis',
+            triggerOn: 'mousemove|click',
+            confine: true,
+            appendTo: () => chartRef.current || undefined,
+            appendToBody: false,
+            enterable: false,
+            hideDelay: 200,
+            transitionDuration: 0.1,
             backgroundColor: '#0b0d0e',
             borderColor: '#383838',
             borderWidth: 1,
             borderType: 'dashed',
             padding: [10, 14],
             extraCssText:
-              'border: 1px dashed #383838 !important; border-radius: 0px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6); pointer-events: none; backdrop-filter: blur(4px);',
+              'border: 1px dashed #383838 !important; border-radius: 0px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6); pointer-events: none; backdrop-filter: blur(4px); z-index: 10 !important; max-width: calc(100% - 16px);',
             axisPointer: {
               type: 'line',
               lineStyle: {
@@ -287,5 +400,17 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
     }
   }, [series, period]);
 
-  return <div ref={chartRef} style={{ width: '100%', height: '220px' }} />;
+  return (
+    <div
+      ref={chartRef}
+      className="analytics-chart-canvas-container"
+      style={{
+        width: '100%',
+        height: '220px',
+        position: 'relative',
+        overflow: 'hidden',
+        touchAction: 'pan-y',
+      }}
+    />
+  );
 }

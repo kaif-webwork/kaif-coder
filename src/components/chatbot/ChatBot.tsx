@@ -104,23 +104,31 @@ export default function ChatBot() {
     };
   }, [isOpen]);
 
-  // Lock body scroll on mobile viewports when chat modal is open
+  // Lock body scroll on mobile viewports when chat modal is open and clear lingering tooltips
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    if (isOpen && window.innerWidth <= 768) {
-      const prevOverflow = document.body.style.overflow;
-      const prevPosition = document.body.style.position;
-      const prevTouchAction = document.body.style.touchAction;
+    if (isOpen) {
+      // Dismiss any open chart tooltips immediately
+      window.dispatchEvent(new CustomEvent('hide-all-tooltips'));
+      document.querySelectorAll('.echarts-tooltip').forEach((el) => {
+        (el as HTMLElement).style.display = 'none';
+      });
 
-      document.body.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none';
+      if (window.innerWidth <= 768) {
+        const prevOverflow = document.body.style.overflow;
+        const prevPosition = document.body.style.position;
+        const prevTouchAction = document.body.style.touchAction;
 
-      return () => {
-        document.body.style.overflow = prevOverflow;
-        document.body.style.position = prevPosition;
-        document.body.style.touchAction = prevTouchAction;
-      };
+        document.body.style.overflow = 'hidden';
+        document.body.style.touchAction = 'none';
+
+        return () => {
+          document.body.style.overflow = prevOverflow;
+          document.body.style.position = prevPosition;
+          document.body.style.touchAction = prevTouchAction;
+        };
+      }
     }
   }, [isOpen]);
 

@@ -29,8 +29,10 @@
   transition: border-color 0.2s ease;
 }
 
-.analytics-stat-card:hover {
-  border-color: #666;
+@media (hover: hover) and (pointer: fine) {
+  .analytics-stat-card:hover {
+    border-color: #666;
+  }
 }
 
 .analytics-stat-label {
@@ -75,8 +77,10 @@
   transition: border-color 0.2s ease;
 }
 
-.analytics-chart-box:hover {
-  border-color: #666;
+@media (hover: hover) and (pointer: fine) {
+  .analytics-chart-box:hover {
+    border-color: #666;
+  }
 }
 
 .analytics-chart-header {
@@ -107,7 +111,8 @@
 .analytics-period-buttons {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  touch-action: manipulation;
 }
 
 .analytics-period-tab {
@@ -117,14 +122,25 @@
   font-size: 0.8rem;
   color: #666666;
   cursor: pointer;
-  padding: 2px 2px;
+  padding: 5px 8px;
+  min-height: 30px;
+  min-width: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
   border-bottom: 2px solid transparent;
   transition: color 0.15s ease, border-color 0.15s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.analytics-period-tab:hover {
-  color: #b3b3b3;
+@media (hover: hover) and (pointer: fine) {
+  .analytics-period-tab:hover {
+    color: #b3b3b3;
+  }
 }
 
 .analytics-period-tab.active {
@@ -167,6 +183,29 @@
 
 .analytics-chart-render {
   width: 100%;
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.analytics-chart-canvas-container {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y !important;
+}
+
+.analytics-chart-render canvas,
+.analytics-chart-canvas-container canvas {
+  touch-action: pan-y !important;
+}
+
+.analytics-chart-render .echarts-tooltip,
+.analytics-chart-canvas-container .echarts-tooltip {
+  pointer-events: none !important;
+  z-index: 10 !important;
 }
 
 .analytics-loading-placeholder {
@@ -229,7 +268,10 @@
   }
 
   .analytics-period-tab {
-    font-size: 0.75rem;
+    font-size: 0.76rem;
+    padding: 6px 10px;
+    min-height: 32px;
+    min-width: 36px;
   }
 
   .analytics-legend-row {

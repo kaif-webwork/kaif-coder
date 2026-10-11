@@ -326,6 +326,9 @@
   background: #0b0d0e;
   scrollbar-width: thin;
   scrollbar-color: #26282f transparent;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .chat-window-body::-webkit-scrollbar {
@@ -417,6 +420,10 @@
   cursor: pointer;
   transition: all 0.16s ease;
   outline: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .chat-welcome-card:hover {
@@ -1059,6 +1066,10 @@
   cursor: pointer;
   transition: all 0.15s ease;
   flex-shrink: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .chat-chip-icon {
@@ -1281,8 +1292,9 @@
 
   .chat-window-body {
     padding: 12px 12px !important;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
   }
 
   .chat-bubble {
