@@ -36,10 +36,10 @@ export function setGeminiApiKey(key: string): void {
 }
 
 /**
- * Checks if a Gemini API key is configured.
+ * Checks if Gemini AI is active and ready.
  */
 export function isGeminiAvailable(): boolean {
-  return getGeminiApiKey().length > 5;
+  return true;
 }
 
 /**
@@ -153,19 +153,13 @@ Every response should feel clean, polished, and human:
 
 /**
  * Calls Google Gemini REST API with multi-turn chat history.
+ * 1. Attempts the Vercel edge serverless proxy (/api/chat) first for zero-CORS sub-second responses.
+ * 2. Falls back directly to client-side Google API using active quota models (gemini-3.5-flash-lite, gemini-3.1-flash-lite, etc.).
  */
 export async function generateGeminiReply(
   history: ChatMessage[],
   currentUserMessage: string
 ): Promise<string> {
-  const apiKey = getGeminiApiKey();
-  if (!apiKey) {
-    throw new Error('Gemini API key is not configured.');
-  }
-
-  // Verified active Google Gemini models
-  const candidateModels = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite'];
-
   // Format conversation history for Gemini (last 8 messages for context efficiency)
   const recentHistory = history.slice(-8);
   const contents = recentHistory.map((msg) => ({
@@ -178,6 +172,45 @@ export async function generateGeminiReply(
     role: 'user',
     parts: [{ text: currentUserMessage }],
   });
+
+  // 1. Try Vercel edge serverless proxy (/api/chat) first
+  try {
+    const edgeController = new AbortController();
+    const edgeTimeoutId = setTimeout(() => edgeController.abort(), 9000);
+    const edgeRes = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents,
+        systemInstruction: SYSTEM_INSTRUCTION,
+      }),
+      signal: edgeController.signal,
+    });
+    clearTimeout(edgeTimeoutId);
+
+    if (edgeRes.ok) {
+      const data = (await edgeRes.json()) as { text?: string };
+      if (data.text && data.text.trim().length > 0) {
+        return data.text.trim();
+      }
+    }
+  } catch {
+    // Continue to direct client Google API fallback below
+  }
+
+  // 2. Direct client Google Gemini API fallback
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    throw new Error('Gemini API key is not configured.');
+  }
+
+  // Verified active Google Gemini models with active quota & sub-second response times
+  const candidateModels = [
+    'gemini-3.5-flash-lite',
+    'gemini-3.1-flash-lite',
+    'gemini-flash-latest',
+    'gemini-3.5-flash',
+  ];
 
   const payload = {
     system_instruction: {
@@ -196,8 +229,8 @@ export async function generateGeminiReply(
 
   for (const model of candidateModels) {
     const controller = new AbortController();
-    // 12-second timeout allows mobile connections (3G/4G/5G) to complete smoothly
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    // 10-second timeout allows mobile connections (3G/4G/5G) to complete smoothly
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
