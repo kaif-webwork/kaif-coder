@@ -18,6 +18,7 @@ interface TooltipState {
 export default function Calendar() {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const activeCellKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Automatically scroll to recent activity on mobile devices
@@ -27,7 +28,10 @@ export default function Calendar() {
       }
     }, 50);
 
-    const handleDismiss = () => setTooltip(null);
+    const handleDismiss = () => {
+      activeCellKeyRef.current = null;
+      setTooltip(null);
+    };
     window.addEventListener('click', handleDismiss);
     window.addEventListener('scroll', handleDismiss, { passive: true });
     window.addEventListener('touchstart', handleDismiss, { passive: true });
@@ -149,7 +153,16 @@ export default function Calendar() {
     return { cells: grid, monthLabels: months };
   }, []);
 
-  const handleCellHover = (e: React.MouseEvent | React.TouchEvent, count: number, dateStr: string) => {
+  const handleCellHover = (
+    e: React.MouseEvent | React.TouchEvent,
+    cellKey: string,
+    count: number,
+    dateStr: string
+  ) => {
+    if (document.documentElement.classList.contains('is-scrolling')) return;
+    if (activeCellKeyRef.current === cellKey) return;
+    activeCellKeyRef.current = cellKey;
+
     const target = e.currentTarget as SVGElement;
     const rect = target.getBoundingClientRect();
     const rawX = rect.left + rect.width / 2;
@@ -199,12 +212,14 @@ export default function Calendar() {
               ry="3.5"
               fill={cell.fill}
               className="calendar-cell"
-              onMouseEnter={(e) => handleCellHover(e, cell.count, cell.dateStr)}
-              onMouseMove={(e) => handleCellHover(e, cell.count, cell.dateStr)}
-              onMouseLeave={() => setTooltip(null)}
+              onMouseEnter={(e) => handleCellHover(e, cell.key, cell.count, cell.dateStr)}
+              onMouseLeave={() => {
+                activeCellKeyRef.current = null;
+                setTooltip(null);
+              }}
               onClick={(e) => {
                 e.stopPropagation();
-                handleCellHover(e, cell.count, cell.dateStr);
+                handleCellHover(e, cell.key, cell.count, cell.dateStr);
               }}
             />
           ))}

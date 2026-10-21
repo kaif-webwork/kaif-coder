@@ -272,7 +272,13 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
           tooltip: {
             show: true,
             trigger: 'axis',
-            triggerOn: 'mousemove|click',
+            triggerOn:
+              typeof window !== 'undefined' &&
+              ('ontouchstart' in window ||
+                navigator.maxTouchPoints > 0 ||
+                window.matchMedia('(pointer: coarse)').matches)
+                ? 'click'
+                : 'mousemove',
             confine: true,
             appendTo: () => chartRef.current || undefined,
             appendToBody: false,
@@ -295,13 +301,18 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
               },
             },
             formatter: (params: any) => {
-              if (isScrollingRef.current) return '';
+              if (isScrollingRef.current || document.documentElement.classList.contains('is-scrolling')) return '';
               if (!Array.isArray(params) || params.length === 0) return '';
               isTipVisibleRef.current = true;
               const dataIndex = params[0].dataIndex;
 
-              // Crisp haptic feedback on mobile when scrubbing over a new point (never during page scrolling)
-              if (!isScrollingRef.current && typeof dataIndex === 'number' && dataIndex !== lastHapticIndexRef.current) {
+              // Crisp haptic feedback only on deliberate mobile selection
+              if (
+                !isScrollingRef.current &&
+                !document.documentElement.classList.contains('is-scrolling') &&
+                typeof dataIndex === 'number' &&
+                dataIndex !== lastHapticIndexRef.current
+              ) {
                 lastHapticIndexRef.current = dataIndex;
                 triggerHaptic('selection');
               }

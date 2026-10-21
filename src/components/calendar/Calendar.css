@@ -9,6 +9,7 @@
   box-sizing: border-box;
   width: 100%;
   touch-action: pan-y;
+  overscroll-behavior-y: auto;
 }
 
 .calendar-wrapper-box:hover {
@@ -24,6 +25,8 @@
   scrollbar-width: thin;
   scrollbar-color: #2e3036 transparent;
   touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
 }
 
 .calendar-scroll-wrapper::-webkit-scrollbar {
@@ -50,11 +53,13 @@
   max-width: 655px;
   height: auto;
   margin: 0 auto;
+  touch-action: pan-y;
 }
 
 .calendar-cell {
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition: opacity 0.15s ease;
   transform-origin: center;
+  touch-action: pan-y;
 }
 
 .calendar-cell:hover,
