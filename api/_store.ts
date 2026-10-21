@@ -1,5 +1,3 @@
-import { put, get } from '@vercel/blob';
-
 export interface DayData {
   pv: number;
   visitors: string[];
@@ -19,11 +17,18 @@ let cachedStore: LiveAnalyticsStore | null = null;
 let lastCacheTime = 0;
 const CACHE_TTL_MS = 2500; // 2.5 seconds cache for high throughput
 
-function getBlobToken(): string | undefined {
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env.BLOB_READ_WRITE_TOKEN;
+declare const process: { env: Record<string, string | undefined> };
+
+function getBlobCredentials(): { token: string; storeId: string } | null {
+  try {
+    const token = typeof process !== 'undefined' && process.env ? process.env.BLOB_READ_WRITE_TOKEN : undefined;
+    if (!token) return null;
+    const parts = token.split('_');
+    const storeId = parts[3] || 'nxxynmqPlr3GHtMv';
+    return { token, storeId: storeId.toLowerCase() };
+  } catch {
+    return null;
   }
-  return undefined;
 }
 
 export async function getLiveStore(): Promise<LiveAnalyticsStore> {
@@ -32,29 +37,29 @@ export async function getLiveStore(): Promise<LiveAnalyticsStore> {
     return cachedStore;
   }
 
-  const token = getBlobToken();
-  if (!token) {
-    if (!cachedStore) {
-      cachedStore = { daily: {}, totalPv: 0, totalVisitors: [], lastUpdated: now };
-    }
-    return cachedStore;
-  }
-
-  try {
-    const res = await get(BLOB_PATH, { access: 'private', token });
-    if (res && res.stream) {
-      const text = await new Response(res.stream).text();
-      if (text) {
-        const parsed = JSON.parse(text) as LiveAnalyticsStore;
-        if (parsed && typeof parsed === 'object' && parsed.daily) {
-          cachedStore = parsed;
-          lastCacheTime = now;
-          return parsed;
+  const creds = getBlobCredentials();
+  if (creds) {
+    try {
+      const getUrl = `https://${creds.storeId}.private.blob.vercel-storage.com/${BLOB_PATH}?cache=0`;
+      const res = await fetch(getUrl, {
+        headers: {
+          authorization: `Bearer ${creds.token}`,
+        },
+      });
+      if (res.ok) {
+        const text = await res.text();
+        if (text) {
+          const parsed = JSON.parse(text) as LiveAnalyticsStore;
+          if (parsed && typeof parsed === 'object' && parsed.daily) {
+            cachedStore = parsed;
+            lastCacheTime = now;
+            return parsed;
+          }
         }
       }
+    } catch {
+      // Fallback if network hiccup
     }
-  } catch {
-    // If blob not created yet or network hiccup, use fallback
   }
 
   if (!cachedStore) {
@@ -110,15 +115,21 @@ export async function recordRealVisit(
   cachedStore = store;
   lastCacheTime = Date.now();
 
-  const token = getBlobToken();
-  if (token) {
+  const creds = getBlobCredentials();
+  if (creds) {
     try {
-      await put(BLOB_PATH, JSON.stringify(store), {
-        access: 'private',
-        addRandomSuffix: false,
-        allowOverwrite: true,
-        contentType: 'application/json',
-        token,
+      const putUrl = `https://vercel.com/api/blob?pathname=${encodeURIComponent(BLOB_PATH)}`;
+      await fetch(putUrl, {
+        method: 'PUT',
+        headers: {
+          authorization: `Bearer ${creds.token}`,
+          'x-api-version': '13',
+          'x-vercel-blob-access': 'private',
+          'x-allow-overwrite': '1',
+          'x-add-random-suffix': '0',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(store),
       });
     } catch (err) {
       console.warn('Failed to sync analytics to Vercel Blob:', err);

@@ -1,5 +1,5 @@
 import { Redis } from '@upstash/redis';
-import { recordRealVisit } from './_store';
+import { recordRealVisit } from './_store.js';
 
 export const config = {
   runtime: 'edge',

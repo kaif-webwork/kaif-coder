@@ -1,5 +1,5 @@
 import { Redis } from '@upstash/redis';
-import { getLiveStore } from './_store';
+import { getLiveStore } from './_store.js';
 
 export const config = {
   runtime: 'edge',
