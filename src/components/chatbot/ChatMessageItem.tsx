@@ -48,6 +48,21 @@ function getSmartActionLabel(rawLabel: string, url: string): string {
   return 'Explore';
 }
 
+function safeUrl(rawUrl: string): string {
+  if (!rawUrl || typeof rawUrl !== 'string') return '#';
+  const trimmed = rawUrl.trim();
+  // Safe relative paths within site
+  if (trimmed.startsWith('/') || trimmed.startsWith('#')) {
+    return trimmed;
+  }
+  // Safe absolute protocols: https, http, mailto, tel
+  if (/^(https?:\/\/|mailto:|tel:)/i.test(trimmed)) {
+    return trimmed;
+  }
+  // Disallow javascript:, data:, vbscript:, etc.
+  return '#';
+}
+
 function InlineCopyPill({
   text,
   display,
@@ -275,12 +290,14 @@ export default function ChatMessageItem({
         return (
           <div key={lineKey} className="chat-actions-group">
             {actions.map((act, actIdx) => {
-              const isInternal = act.url.startsWith('/') || act.url.startsWith('#');
+              const safeHref = safeUrl(act.url);
+              if (safeHref === '#' && !act.url.startsWith('#')) return null;
+              const isInternal = safeHref.startsWith('/') || safeHref.startsWith('#');
               if (isInternal) {
                 return (
                   <Link
                     key={`${lineKey}-act-${actIdx}`}
-                    to={act.url}
+                    to={safeHref}
                     className="chat-action-btn internal"
                     onClick={onNavigate}
                   >
@@ -292,7 +309,7 @@ export default function ChatMessageItem({
               return (
                 <a
                   key={`${lineKey}-act-${actIdx}`}
-                  href={act.url}
+                  href={safeHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="chat-action-btn external"
@@ -311,14 +328,16 @@ export default function ChatMessageItem({
       if (pureLinkMatch) {
         const rawLabel = pureLinkMatch[2];
         const url = pureLinkMatch[3].trim();
+        const safeHref = safeUrl(url);
+        if (safeHref === '#' && !url.startsWith('#')) return null;
         const label = getSmartActionLabel(rawLabel, url);
-        const isInternal = url.startsWith('/') || url.startsWith('#');
+        const isInternal = safeHref.startsWith('/') || safeHref.startsWith('#');
         return (
           <div key={lineKey} className="chat-actions-group">
             {isInternal ? (
               <Link
                 key={`${lineKey}-purelink`}
-                to={url}
+                to={safeHref}
                 className="chat-action-btn internal"
                 onClick={onNavigate}
               >
@@ -328,7 +347,7 @@ export default function ChatMessageItem({
             ) : (
               <a
                 key={`${lineKey}-purelink`}
-                href={url}
+                href={safeHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="chat-action-btn external"
@@ -476,13 +495,15 @@ export default function ChatMessageItem({
       const actionInlineMatch = part.match(/^\[action:\s*([^\]]*)\]\(([^)]+)\)$/i);
       if (actionInlineMatch) {
         const [, rawLabel, url] = actionInlineMatch;
+        const safeHref = safeUrl(url);
+        if (safeHref === '#' && !url.startsWith('#')) return null;
         const label = getSmartActionLabel(rawLabel, url);
-        const isInternal = url.startsWith('/') || url.startsWith('#');
+        const isInternal = safeHref.startsWith('/') || safeHref.startsWith('#');
         if (isInternal) {
           return (
             <Link
               key={key}
-              to={url}
+              to={safeHref}
               className="chat-action-btn inline internal"
               onClick={onNavigate}
             >
@@ -494,7 +515,7 @@ export default function ChatMessageItem({
         return (
           <a
             key={key}
-            href={url}
+            href={safeHref}
             target="_blank"
             rel="noopener noreferrer"
             className="chat-action-btn inline external"
@@ -509,14 +530,16 @@ export default function ChatMessageItem({
       const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
       if (linkMatch) {
         let [, rawLabel, url] = linkMatch;
+        const safeHref = safeUrl(url);
+        if (safeHref === '#' && !url.startsWith('#')) return null;
         const label = getSmartActionLabel(rawLabel, url);
         if (!label) return null;
-        const isInternal = url.startsWith('/') || url.startsWith('#');
+        const isInternal = safeHref.startsWith('/') || safeHref.startsWith('#');
         if (isInternal) {
           return (
             <Link
               key={key}
-              to={url}
+              to={safeHref}
               className="chat-link-pill internal"
               onClick={onNavigate}
             >
@@ -528,7 +551,7 @@ export default function ChatMessageItem({
         return (
           <a
             key={key}
-            href={url}
+            href={safeHref}
             target="_blank"
             rel="noopener noreferrer"
             className="chat-link-pill external"

@@ -155,17 +155,37 @@ function computeGrowth(
   };
 }
 
-const CORS_HEADERS = {
-  'content-type': 'application/json; charset=utf-8',
-  'access-control-allow-origin': '*',
-  'access-control-allow-methods': 'GET, POST, OPTIONS',
-  'access-control-allow-headers': 'Content-Type, Authorization',
-  'x-content-type-options': 'nosniff',
-  'x-frame-options': 'DENY',
-  'cache-control': 'public, s-maxage=10, stale-while-revalidate=30',
-};
+function isOriginAllowed(origin: string | null): boolean {
+  if (!origin) return true;
+  try {
+    const url = new URL(origin);
+    const host = url.hostname;
+    return (
+      host === 'localhost' ||
+      host === '127.0.0.1' ||
+      host.endsWith('.kaifcoder.in') ||
+      host === 'kaifcoder.in' ||
+      host.endsWith('.vercel.app')
+    );
+  } catch {
+    return false;
+  }
+}
 
 export default async function handler(req: Request) {
+  const origin = req.headers.get('origin');
+  const allowedOrigin = origin && isOriginAllowed(origin) ? origin : 'https://www.kaifcoder.in';
+
+  const CORS_HEADERS = {
+    'content-type': 'application/json; charset=utf-8',
+    'access-control-allow-origin': allowedOrigin,
+    'access-control-allow-methods': 'GET, OPTIONS',
+    'access-control-allow-headers': 'Content-Type',
+    'x-content-type-options': 'nosniff',
+    'x-frame-options': 'DENY',
+    'cache-control': 'public, s-maxage=10, stale-while-revalidate=30',
+  };
+
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,

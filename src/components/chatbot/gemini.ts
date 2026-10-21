@@ -15,9 +15,16 @@ export function getGeminiApiKey(): string {
     // Ignore localStorage errors
   }
 
-  // Check Vite environment variable configured on Vercel and local environment
-  const envKey = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) || '';
-  return envKey.trim().replace(/^["']|["']$/g, '');
+  // Developer mode only on localhost
+  if (
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ) {
+    const envKey = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) || '';
+    return envKey.trim().replace(/^["']|["']$/g, '');
+  }
+
+  return '';
 }
 
 /**
@@ -179,9 +186,18 @@ export async function generateGeminiReply(
       if (data.text && data.text.trim().length > 0) {
         return data.text.trim();
       }
+    } else if (edgeRes.status === 429) {
+      const err = await edgeRes.json().catch(() => ({}));
+      throw new Error(
+        (err as { error?: string })?.error ||
+          'Too many requests. Please wait a moment before sending another message.'
+      );
     }
-  } catch {
-    // Continue to direct client Google API fallback below
+  } catch (err: any) {
+    if (err?.message?.includes('Too many requests')) {
+      throw err;
+    }
+    // Continue to direct client Google API fallback below if developer has set key
   }
 
   // 2. Direct client Google Gemini API fallback

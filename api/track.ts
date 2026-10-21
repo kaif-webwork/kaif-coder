@@ -28,33 +28,106 @@ function getRedis(): Redis | null {
   return null;
 }
 
-const CORS_HEADERS = {
-  'content-type': 'application/json; charset=utf-8',
-  'access-control-allow-origin': '*',
-  'access-control-allow-methods': 'GET, POST, OPTIONS',
-  'access-control-allow-headers': 'Content-Type, Authorization',
-  'x-content-type-options': 'nosniff',
-  'x-frame-options': 'DENY',
-  'cache-control': 'no-store, no-cache, must-revalidate',
-};
+// In-memory sliding rate limiter per Edge instance
+interface RateLimitRecord {
+  count: number;
+  resetAt: number;
+}
+const trackRateLimitStore = new Map<string, RateLimitRecord>();
+const TRACK_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const MAX_TRACK_REQUESTS_PER_WINDOW = 60;
 
-// Edge memory store for fast multi-device tracking
+function checkTrackRateLimit(ip: string): boolean {
+  const now = Date.now();
+  if (trackRateLimitStore.size > 2000) {
+    for (const [key, val] of trackRateLimitStore.entries()) {
+      if (now > val.resetAt) trackRateLimitStore.delete(key);
+    }
+  }
+
+  const record = trackRateLimitStore.get(ip);
+  if (!record || now > record.resetAt) {
+    trackRateLimitStore.set(ip, { count: 1, resetAt: now + TRACK_RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+
+  if (record.count >= MAX_TRACK_REQUESTS_PER_WINDOW) {
+    return false;
+  }
+
+  record.count += 1;
+  return true;
+}
+
+function isOriginAllowed(origin: string | null): boolean {
+  if (!origin) return true; // Same-origin or non-browser request
+  try {
+    const url = new URL(origin);
+    const host = url.hostname;
+    return (
+      host === 'localhost' ||
+      host === '127.0.0.1' ||
+      host.endsWith('.kaifcoder.in') ||
+      host === 'kaifcoder.in' ||
+      host.endsWith('.vercel.app')
+    );
+  } catch {
+    return false;
+  }
+}
+
+// Edge memory store for fast multi-device tracking fallback
 const memoryStore = new Map<string, number>();
 
 export default async function handler(req: Request) {
+  const origin = req.headers.get('origin');
+  if (!isOriginAllowed(origin)) {
+    return new Response(JSON.stringify({ error: 'Access denied' }), {
+      status: 403,
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        'x-content-type-options': 'nosniff',
+      },
+    });
+  }
+
+  const allowedOrigin = origin && isOriginAllowed(origin) ? origin : 'https://www.kaifcoder.in';
+  const corsHeaders = {
+    'content-type': 'application/json; charset=utf-8',
+    'access-control-allow-origin': allowedOrigin,
+    'access-control-allow-methods': 'POST, OPTIONS',
+    'access-control-allow-headers': 'Content-Type',
+    'x-content-type-options': 'nosniff',
+    'x-frame-options': 'DENY',
+    'cache-control': 'no-store, no-cache, must-revalidate',
+  };
+
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: CORS_HEADERS });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: CORS_HEADERS,
+      headers: corsHeaders,
+    });
+  }
+
+  // Rate Limiting per client IP
+  const clientIp =
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    req.headers.get('x-real-ip') ||
+    '127.0.0.1';
+
+  if (!checkTrackRateLimit(clientIp)) {
+    return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
+      status: 429,
+      headers: corsHeaders,
     });
   }
 
   try {
-    let body: { path?: string; visitorId?: string } = {};
+    let body: { path?: unknown; visitorId?: unknown } = {};
     try {
       body = (await req.json()) as typeof body;
     } catch {
@@ -100,11 +173,11 @@ export default async function handler(req: Request) {
     }
 
     return new Response(JSON.stringify({ ok: true }), {
-      headers: CORS_HEADERS,
+      headers: corsHeaders,
     });
   } catch {
     return new Response(JSON.stringify({ ok: true, fallback: true }), {
-      headers: CORS_HEADERS,
+      headers: corsHeaders,
     });
   }
 }

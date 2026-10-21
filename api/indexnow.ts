@@ -2,6 +2,8 @@ export const config = {
   runtime: 'edge',
 };
 
+declare const process: { env: Record<string, string | undefined> };
+
 const INDEXNOW_KEY = 'c4b8e21a8f944a9b8f2d57319e73552d';
 const HOST = 'www.kaifcoder.in';
 const KEY_LOCATION = `https://${HOST}/${INDEXNOW_KEY}.txt`;
@@ -19,7 +21,43 @@ const URL_LIST = [
   `https://${HOST}/support`,
 ];
 
-export default async function handler(_req: Request): Promise<Response> {
+export default async function handler(req: Request): Promise<Response> {
+  // Method validation
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed. Use POST.' }), {
+      status: 405,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Content-Type-Options': 'nosniff',
+        Allow: 'POST',
+      },
+    });
+  }
+
+  // Authorization check: only authorized cron jobs or authenticated triggers can execute IndexNow submissions
+  const authHeader = req.headers.get('authorization') || '';
+  const isVercelCron = Boolean(req.headers.get('x-vercel-cron'));
+  const url = new URL(req.url);
+  const secretParam = url.searchParams.get('secret');
+
+  const expectedSecret =
+    (process.env.INDEXNOW_SECRET || process.env.CRON_SECRET || INDEXNOW_KEY).trim();
+
+  const isAuthorized =
+    isVercelCron ||
+    authHeader === `Bearer ${expectedSecret}` ||
+    secretParam === expectedSecret;
+
+  if (!isAuthorized) {
+    return new Response(JSON.stringify({ error: 'Unauthorized: invalid or missing security credentials' }), {
+      status: 401,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    });
+  }
+
   const payload = {
     host: HOST,
     key: INDEXNOW_KEY,
@@ -43,6 +81,7 @@ export default async function handler(_req: Request): Promise<Response> {
           'Content-Type': 'application/json; charset=utf-8',
         },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(5000),
       });
       const text = await res.text();
       results[endpoint] = { status: res.status, text };
@@ -55,7 +94,8 @@ export default async function handler(_req: Request): Promise<Response> {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
-      'Cache-Control': 'no-store',
+      'Cache-Control': 'no-store, max-age=0',
+      'X-Content-Type-Options': 'nosniff',
     },
   });
 }
