@@ -29,12 +29,22 @@ export default function Calendar() {
 
     const handleDismiss = () => setTooltip(null);
     window.addEventListener('click', handleDismiss);
+    window.addEventListener('scroll', handleDismiss, { passive: true });
     window.addEventListener('touchstart', handleDismiss, { passive: true });
+
+    const scrollEl = scrollRef.current;
+    if (scrollEl) {
+      scrollEl.addEventListener('scroll', handleDismiss, { passive: true });
+    }
 
     return () => {
       clearTimeout(timer);
       window.removeEventListener('click', handleDismiss);
+      window.removeEventListener('scroll', handleDismiss);
       window.removeEventListener('touchstart', handleDismiss);
+      if (scrollEl) {
+        scrollEl.removeEventListener('scroll', handleDismiss);
+      }
     };
   }, []);
 
@@ -193,10 +203,6 @@ export default function Calendar() {
               onMouseMove={(e) => handleCellHover(e, cell.count, cell.dateStr)}
               onMouseLeave={() => setTooltip(null)}
               onClick={(e) => {
-                e.stopPropagation();
-                handleCellHover(e, cell.count, cell.dateStr);
-              }}
-              onTouchStart={(e) => {
                 e.stopPropagation();
                 handleCellHover(e, cell.count, cell.dateStr);
               }}

@@ -16,10 +16,7 @@ export default function SmoothScroll() {
         gestureOrientation: 'vertical',
         smoothWheel: true,
         wheelMultiplier: 1.0,
-        syncTouch: true,
-        syncTouchLerp: 0.08,
-        touchInertiaExponent: 1.6,
-        touchMultiplier: 1.2,
+        syncTouch: false,
         anchors: true,
         prevent: (node: HTMLElement) => {
           return (
@@ -27,8 +24,7 @@ export default function SmoothScroll() {
             Boolean(node?.closest?.('[data-lenis-prevent]')) ||
             Boolean(node?.closest?.('.chat-window-container')) ||
             Boolean(node?.closest?.('.cert-lightbox-overlay')) ||
-            Boolean(node?.closest?.('.adzero-lightbox-overlay')) ||
-            Boolean(node?.closest?.('.analytics-chart-canvas-container'))
+            Boolean(node?.closest?.('.adzero-lightbox-overlay'))
           );
         },
       });

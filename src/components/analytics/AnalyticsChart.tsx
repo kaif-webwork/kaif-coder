@@ -21,12 +21,14 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
   const hideTimerRef = useRef<number | null>(null);
   const lastHapticIndexRef = useRef<number | null>(null);
   const isTipVisibleRef = useRef<boolean>(false);
+  const isScrollingRef = useRef<boolean>(false);
 
   const hideChartTip = useCallback(() => {
     if (hideTimerRef.current) {
       window.clearTimeout(hideTimerRef.current);
       hideTimerRef.current = null;
     }
+    lastHapticIndexRef.current = null;
     if (!isTipVisibleRef.current) return;
     isTipVisibleRef.current = false;
 
@@ -67,7 +69,6 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
     // Mobile touch interaction listeners
     let touchStartY = 0;
     let touchStartX = 0;
-    let isScrolling = false;
 
     const handleTouchStart = (e: TouchEvent) => {
       if (hideTimerRef.current) {
@@ -77,8 +78,7 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
       if (e.touches && e.touches.length > 0) {
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
-        isScrolling = false;
-        triggerHaptic('light');
+        isScrollingRef.current = false;
       }
     };
 
@@ -86,9 +86,9 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
       if (e.touches && e.touches.length > 0) {
         const deltaY = Math.abs(e.touches[0].clientY - touchStartY);
         const deltaX = Math.abs(e.touches[0].clientX - touchStartX);
-        // If gesture is vertical scroll, dismiss tooltip immediately so page scrolls cleanly
-        if (deltaY > 8 && deltaY > deltaX) {
-          isScrolling = true;
+        // If gesture is vertical scroll, mark scrolling and dismiss tooltip immediately
+        if (deltaY > 5 && deltaY > deltaX) {
+          isScrollingRef.current = true;
           hideChartTip();
         }
       }
@@ -96,17 +96,17 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
 
     const handleTouchEnd = () => {
       lastHapticIndexRef.current = null;
-      if (isScrolling) {
+      if (isScrollingRef.current) {
         hideChartTip();
         return;
       }
-      // On mobile tap, let user see point data, then automatically hide after 1200ms
+      // On mobile tap, let user see point data, then automatically hide after 1500ms
       if (hideTimerRef.current) {
         window.clearTimeout(hideTimerRef.current);
       }
       hideTimerRef.current = window.setTimeout(() => {
         hideChartTip();
-      }, 1200);
+      }, 1500);
     };
 
     // Outside tap dismiss
@@ -119,6 +119,7 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
 
     // Immediate dismiss on scroll or modal events
     const handleGlobalDismiss = () => {
+      isScrollingRef.current = true;
       hideChartTip();
     };
 
@@ -294,12 +295,13 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
               },
             },
             formatter: (params: any) => {
+              if (isScrollingRef.current) return '';
               if (!Array.isArray(params) || params.length === 0) return '';
               isTipVisibleRef.current = true;
               const dataIndex = params[0].dataIndex;
 
-              // Crisp haptic feedback on mobile when scrubbing over a new point
-              if (typeof dataIndex === 'number' && dataIndex !== lastHapticIndexRef.current) {
+              // Crisp haptic feedback on mobile when scrubbing over a new point (never during page scrolling)
+              if (!isScrollingRef.current && typeof dataIndex === 'number' && dataIndex !== lastHapticIndexRef.current) {
                 lastHapticIndexRef.current = dataIndex;
                 triggerHaptic('selection');
               }
