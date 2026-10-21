@@ -226,10 +226,10 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
 
     void syncAllPeriods();
 
-    // Background poll every 35 seconds to keep counts live across devices
+    // Background poll every 10 seconds to keep counts live across all devices
     const interval = setInterval(() => {
       void syncAllPeriods();
-    }, 35000);
+    }, 10000);
 
     return () => {
       ignore = true;

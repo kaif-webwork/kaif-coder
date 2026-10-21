@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import { getLiveStore } from './_store';
 
 export const config = {
   runtime: 'edge',
@@ -187,7 +188,7 @@ export default async function handler(req: Request) {
     'access-control-allow-headers': 'Content-Type',
     'x-content-type-options': 'nosniff',
     'x-frame-options': 'DENY',
-    'cache-control': 'public, s-maxage=10, stale-while-revalidate=30',
+    'cache-control': 'public, s-maxage=3, stale-while-revalidate=5',
   };
 
   if (req.method === 'OPTIONS') {
@@ -199,7 +200,7 @@ export default async function handler(req: Request) {
 
   const url = new URL(req.url, 'http://localhost');
   const rawPeriod = url.searchParams.get('period');
-  const period: '24h' | '7d' | '30d' = rawPeriod === '24h' || rawPeriod === '30d' ? rawPeriod : '7d';
+  const period: '24h' | '7d' | '30d' = rawPeriod === '7d' || rawPeriod === '30d' ? rawPeriod : '24h';
   const now = new Date();
 
   // Fast in-memory edge cache lookup (< 1ms)
@@ -348,12 +349,14 @@ export default async function handler(req: Request) {
           engine: 'redis',
         };
 
-        analyticsCache.set(period, { data: result, expiresAt: now.getTime() + 15000 });
+        analyticsCache.set(period, { data: result, expiresAt: now.getTime() + 3000 });
         return new Response(JSON.stringify(result), { headers: CORS_HEADERS });
       }
     }
 
-    // 2. Authoritative Continuous Edge Engine (Zero 503 hangs, preserves 100% of portfolio history)
+    // 2. Authoritative Continuous Edge Engine (Zero 503 hangs, preserves 100% of portfolio history + cross-device cloud sync)
+    const liveStore = await getLiveStore();
+
     if (period === '24h') {
       const points = 24;
       const timestamps: number[] = [];
@@ -371,8 +374,12 @@ export default async function handler(req: Request) {
         const basePv = base.hourly[hourKey] || 0;
         const baseUv = Math.max(1, Math.round(basePv * 0.45));
 
-        const serverPv = memoryKv.get(`pvh_${dateKey}_${hourKey}`) || 0;
-        const serverUv = memoryKv.get(`uvh_${dateKey}_${hourKey}`) || 0;
+        const dayData = liveStore.daily[dateKey];
+        const liveHourlyPv = dayData?.hourly?.[hourKey] || 0;
+        const liveHourlyUv = dayData?.hourlyVisitors?.[hourKey]?.length || 0;
+
+        const serverPv = (memoryKv.get(`pvh_${dateKey}_${hourKey}`) || 0) + liveHourlyPv;
+        const serverUv = (memoryKv.get(`uvh_${dateKey}_${hourKey}`) || 0) + liveHourlyUv;
 
         const pv = basePv + serverPv;
         const uv = Math.min(pv, baseUv + serverUv);
@@ -392,6 +399,9 @@ export default async function handler(req: Request) {
       const uvGrowth = computeGrowth(recentUv, earlierUv, series, 'visitors');
       const pvGrowth = computeGrowth(recentPv, earlierPv, series, 'pageviews');
 
+      const liveTotalUv = liveStore.totalVisitors?.length || 0;
+      const liveTotalPv = liveStore.totalPv || 0;
+
       const result = {
         pageviews: totalPv,
         visitors: totalUv,
@@ -402,12 +412,12 @@ export default async function handler(req: Request) {
         growthPageviewsStatus: pvGrowth.status,
         isVisitorsUp: uvGrowth.isUp,
         isPageviewsUp: pvGrowth.isUp,
-        totalLifetimeVisitors: 492 + (memoryKv.get('tot_uv') || 0),
-        totalLifetimePageviews: 1485 + (memoryKv.get('tot_pv') || 0),
-        engine: 'edge_authoritative',
+        totalLifetimeVisitors: Math.max(492, 492 + liveTotalUv, totalUv),
+        totalLifetimePageviews: Math.max(1485, 1485 + liveTotalPv, totalPv),
+        engine: 'edge_authoritative_cloud',
       };
 
-      analyticsCache.set(period, { data: result, expiresAt: now.getTime() + 15000 });
+      analyticsCache.set(period, { data: result, expiresAt: now.getTime() + 3000 });
       return new Response(JSON.stringify(result), { headers: CORS_HEADERS });
     } else {
       const days = period === '30d' ? 30 : 7;
@@ -420,8 +430,12 @@ export default async function handler(req: Request) {
         const dateKey = d.toISOString().slice(0, 10);
 
         const base = getHistoricalBaselineForDate(dateKey);
-        const serverPv = memoryKv.get(`pv_${dateKey}`) || 0;
-        const serverUv = memoryKv.get(`uv_${dateKey}`) || 0;
+        const dayData = liveStore.daily[dateKey];
+        const liveDailyPv = dayData?.pv || 0;
+        const liveDailyUv = dayData?.visitors?.length || 0;
+
+        const serverPv = (memoryKv.get(`pv_${dateKey}`) || 0) + liveDailyPv;
+        const serverUv = (memoryKv.get(`uv_${dateKey}`) || 0) + liveDailyUv;
 
         const pv = base.pageviews + serverPv;
         const uv = Math.min(pv, base.visitors + serverUv);
@@ -443,6 +457,9 @@ export default async function handler(req: Request) {
       const uvGrowth = computeGrowth(recentUv, earlierUv, series, 'visitors');
       const pvGrowth = computeGrowth(recentPv, earlierPv, series, 'pageviews');
 
+      const liveTotalUv = liveStore.totalVisitors?.length || 0;
+      const liveTotalPv = liveStore.totalPv || 0;
+
       const result = {
         pageviews: totalPv,
         visitors: totalUv,
@@ -453,12 +470,12 @@ export default async function handler(req: Request) {
         growthPageviewsStatus: pvGrowth.status,
         isVisitorsUp: uvGrowth.isUp,
         isPageviewsUp: pvGrowth.isUp,
-        totalLifetimeVisitors: 492 + (memoryKv.get('tot_uv') || 0),
-        totalLifetimePageviews: 1485 + (memoryKv.get('tot_pv') || 0),
-        engine: 'edge_authoritative',
+        totalLifetimeVisitors: Math.max(492, 492 + liveTotalUv, totalUv),
+        totalLifetimePageviews: Math.max(1485, 1485 + liveTotalPv, totalPv),
+        engine: 'edge_authoritative_cloud',
       };
 
-      analyticsCache.set(period, { data: result, expiresAt: now.getTime() + 15000 });
+      analyticsCache.set(period, { data: result, expiresAt: now.getTime() + 3000 });
       return new Response(JSON.stringify(result), { headers: CORS_HEADERS });
     }
   } catch {

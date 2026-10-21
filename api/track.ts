@@ -1,13 +1,11 @@
 import { Redis } from '@upstash/redis';
+import { recordRealVisit } from './_store';
 
 export const config = {
   runtime: 'edge',
 };
 
 declare const process: { env: Record<string, string | undefined> };
-
-const KV_APP_KEY = 'r405x717';
-const KV_BASE_URL = 'https://keyvalue.immanuel.co/api/KeyVal';
 
 let redisClient: Redis | null = null;
 
@@ -144,6 +142,13 @@ export default async function handler(req: Request) {
     const rawVisitorId = typeof body.visitorId === 'string' ? body.visitorId : '';
     const visitorId = rawVisitorId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64) || 'v_anon';
 
+    // 1. Persistent cloud storage across all global devices
+    try {
+      await recordRealVisit(today, hour, visitorId);
+    } catch {
+      // safe fallback
+    }
+
     const redis = getRedis();
 
     if (redis) {
@@ -157,22 +162,6 @@ export default async function handler(req: Request) {
       pipeline.sadd(`uvh_set_${today}_${hour}`, visitorId);
       pipeline.sadd('tot_uv_set', visitorId);
       await pipeline.exec().catch(() => {});
-    } else {
-      // Fast edge fallback: increment in-memory counts
-      const curTotPv = memoryStore.get('tot_pv') || 0;
-      memoryStore.set('tot_pv', curTotPv + 1);
-      memoryStore.set(`pv_${today}`, (memoryStore.get(`pv_${today}`) || 0) + 1);
-      memoryStore.set(`pvh_${today}_${hour}`, (memoryStore.get(`pvh_${today}_${hour}`) || 0) + 1);
-
-      // Non-blocking best-effort update to KV if available
-      try {
-        fetch(`${KV_BASE_URL}/UpdateValue/${KV_APP_KEY}/tot_pv/${curTotPv + 1}`, {
-          method: 'POST',
-          signal: AbortSignal.timeout(600),
-        }).catch(() => {});
-      } catch {
-        // ignore KV downtime
-      }
     }
 
     return new Response(JSON.stringify({ ok: true }), {

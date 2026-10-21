@@ -9,7 +9,7 @@ import './Analytics.css';
 type Period = '24h' | '7d' | '30d';
 
 export default function AnalyticsDashboard() {
-  const [period, setPeriod] = useState<Period>('7d');
+  const [period, setPeriod] = useState<Period>('24h');
   const { data, loading } = useAnalytics(period);
 
   const handleSelectPeriod = (newPeriod: Period) => {
