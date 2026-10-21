@@ -55,8 +55,15 @@ body {
   overflow-x: hidden;
   width: 100%;
   position: relative;
+  zoom: 1.1;
   touch-action: pan-y pinch-zoom;
   -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 600px) {
+  body {
+    zoom: 1;
+  }
 }
 
 a {
