@@ -14,21 +14,21 @@ const DEVICE_SEEN_KEY = 'kaif_device_seen_v4';
 export function usePageTracker() {
   const location = useLocation();
   const lastTrackedPath = useRef<string | null>(null);
+  const lastTrackTime = useRef<number>(0);
 
   useEffect(() => {
     const currentPath = location.pathname;
-    if (lastTrackedPath.current === currentPath) return;
+    const now = Date.now();
+
+    // Prevent duplicate triggers if path has not changed or triggered within 500ms
+    if (lastTrackedPath.current === currentPath && now - lastTrackTime.current < 500) {
+      return;
+    }
     lastTrackedPath.current = currentPath;
+    lastTrackTime.current = now;
 
     let isNewDevice = false;
-    let isPathTrackedInSession = false;
-
     try {
-      if (typeof window !== 'undefined' && window.sessionStorage) {
-        isPathTrackedInSession = !!window.sessionStorage.getItem(`kaif_trk_${currentPath}`);
-        window.sessionStorage.setItem(`kaif_trk_${currentPath}`, '1');
-      }
-
       if (typeof localStorage !== 'undefined') {
         isNewDevice = !localStorage.getItem(DEVICE_SEEN_KEY);
         localStorage.setItem(DEVICE_SEEN_KEY, '1');
@@ -39,23 +39,17 @@ export function usePageTracker() {
 
     const visitorId = getVisitorId();
 
-    // 1. Client-side local visit recording (strictly deduplicated per device)
+    // 1. Client-side local visit recording
     recordRealPageView(currentPath, isNewDevice);
 
-    // If already tracked in this active session tab, avoid redundant network requests
-    if (isPathTrackedInSession) {
-      return;
-    }
-
-    // 2. Cloud backend beacon to /api/track for global shared multi-device sync
-    // The server performs permanent deduplication so refreshes and repeat visits never increment counts
+    // 2. Cloud backend beacon to /api/track for shared analytics sync
     try {
       const payloadString = JSON.stringify({
         path: currentPath,
         ref: typeof document !== 'undefined' ? document.referrer : '',
         visitorId,
         isNewDevice,
-        timestamp: Date.now(),
+        timestamp: now,
       });
 
       if (typeof navigator !== 'undefined' && navigator.sendBeacon) {

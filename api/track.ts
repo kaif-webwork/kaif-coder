@@ -59,20 +59,23 @@ function checkTrackRateLimit(ip: string): boolean {
   return true;
 }
 
-function isOriginAllowed(origin: string | null): boolean {
-  if (!origin) return true; // Same-origin or non-browser request
+function isOriginAllowed(origin: string | null, req: Request): boolean {
+  if (!origin || origin === 'null') return true; // Same-origin, sendBeacon, or direct navigation
+  const secFetchSite = req.headers.get('sec-fetch-site');
+  if (secFetchSite === 'same-origin' || secFetchSite === 'same-site') return true;
+
   try {
     const url = new URL(origin);
-    const host = url.hostname;
+    const host = url.hostname.toLowerCase();
     return (
       host === 'localhost' ||
       host === '127.0.0.1' ||
-      host.endsWith('.kaifcoder.in') ||
       host === 'kaifcoder.in' ||
+      host.endsWith('.kaifcoder.in') ||
       host.endsWith('.vercel.app')
     );
   } catch {
-    return false;
+    return origin.includes('kaifcoder.in') || origin.includes('vercel.app');
   }
 }
 
@@ -81,7 +84,7 @@ const memoryStore = new Map<string, number>();
 
 export default async function handler(req: Request) {
   const origin = req.headers.get('origin');
-  if (!isOriginAllowed(origin)) {
+  if (!isOriginAllowed(origin, req)) {
     return new Response(JSON.stringify({ error: 'Access denied' }), {
       status: 403,
       headers: {
@@ -91,7 +94,7 @@ export default async function handler(req: Request) {
     });
   }
 
-  const allowedOrigin = origin && isOriginAllowed(origin) ? origin : 'https://www.kaifcoder.in';
+  const allowedOrigin = origin && isOriginAllowed(origin, req) ? origin : 'https://www.kaifcoder.in';
   const corsHeaders = {
     'content-type': 'application/json; charset=utf-8',
     'access-control-allow-origin': allowedOrigin,

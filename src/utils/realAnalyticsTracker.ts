@@ -331,26 +331,28 @@ export function recordRealPageView(path: string, _isNewDevice: boolean = false) 
     day.hourlyVisitors[hour] = Array.isArray(day.hourlyVisitors[hour]) ? day.hourlyVisitors[hour] : [];
 
     const isAlreadyCountedVisitor = day.visitors.includes(visitorId);
-    const isAlreadyViewedPage = day.pvKeys.includes(devicePathKey);
 
     let changed = false;
 
     // 1. Add unique visitor if this device has not yet been counted today
     if (!isAlreadyCountedVisitor) {
       day.visitors.push(visitorId);
-      if (!day.hourlyVisitors[hour].includes(visitorId)) {
-        day.hourlyVisitors[hour].push(visitorId);
-      }
       changed = true;
     }
 
-    // 2. Add unique pageview if this route hasn't been viewed by this device today
-    if (!isAlreadyViewedPage) {
-      day.pvKeys.push(devicePathKey);
-      day.pageviews = day.pvKeys.length;
-      day.hourly[hour] = (Number(day.hourly[hour]) || 0) + 1;
+    // 2. Add unique visitor to the specific hour if not already present
+    if (!day.hourlyVisitors[hour].includes(visitorId)) {
+      day.hourlyVisitors[hour].push(visitorId);
       changed = true;
     }
+
+    // 3. Add real pageview on route navigation
+    if (!day.pvKeys.includes(devicePathKey)) {
+      day.pvKeys.push(devicePathKey);
+    }
+    day.pageviews = Math.max(day.pvKeys.length, (Number(day.pageviews) || 0) + 1);
+    day.hourly[hour] = (Number(day.hourly[hour]) || 0) + 1;
+    changed = true;
 
     if (changed) {
       saveStoredData(data);
@@ -540,8 +542,8 @@ export function getRealAnalyticsForPeriod(period: AnalyticsPeriod): AnalyticsDat
       const userUv = Array.isArray(dayData?.visitors) ? dayData.visitors.length : 0;
 
       // Base historical traffic + any direct real user activity recorded on this day
-      const pv = Math.max(userPv, base.pageviews) + (i === 0 ? userPv : 0);
-      const uv = Math.min(pv, Math.max(userUv, base.visitors) + (i === 0 ? userUv : 0));
+      const pv = base.pageviews + (i === 0 ? userPv : Math.max(0, userPv - base.pageviews));
+      const uv = Math.min(pv, base.visitors + (i === 0 ? userUv : Math.max(0, userUv - base.visitors)));
 
       for (let u = 0; u < uv; u++) {
         currVisitors.add(`uv_${dateKey}_${u}`);
