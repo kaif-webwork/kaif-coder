@@ -29,6 +29,8 @@
   gap: 22px;
   width: max-content;
   animation: marqueeScroll 40s linear infinite;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .skill-marquee.reverse {
@@ -41,19 +43,19 @@
 
 @keyframes marqueeScroll {
   0% {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
   100% {
-    transform: translateX(-33.33%);
+    transform: translate3d(-33.33%, 0, 0);
   }
 }
 
 @keyframes marqueeScrollReverse {
   0% {
-    transform: translateX(-33.33%);
+    transform: translate3d(-33.33%, 0, 0);
   }
   100% {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 

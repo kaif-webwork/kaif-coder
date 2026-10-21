@@ -293,13 +293,13 @@ export default function CertificatesSection() {
       {/* Same-Page Lightbox Modal (No Redirect!) */}
       {previewImage && (
         <div
-          className="cert-lightbox-overlay"
+          className="cert-lightbox-overlay" data-lenis-prevent="true"
           onClick={handleCloseLightbox}
           role="dialog"
           aria-modal="true"
         >
           <div
-            className="cert-lightbox-content"
+            className="cert-lightbox-content" data-lenis-prevent="true"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Dedicated Top Header Bar - Never Overlaps Certificate Image */}

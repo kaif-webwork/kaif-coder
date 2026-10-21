@@ -20,12 +20,16 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
   const chartInstance = useRef<echarts.ECharts | null>(null);
   const hideTimerRef = useRef<number | null>(null);
   const lastHapticIndexRef = useRef<number | null>(null);
+  const isTipVisibleRef = useRef<boolean>(false);
 
   const hideChartTip = useCallback(() => {
     if (hideTimerRef.current) {
       window.clearTimeout(hideTimerRef.current);
       hideTimerRef.current = null;
     }
+    if (!isTipVisibleRef.current) return;
+    isTipVisibleRef.current = false;
+
     if (chartInstance.current && !chartInstance.current.isDisposed()) {
       try {
         chartInstance.current.dispatchAction({ type: 'hideTip' });
@@ -225,7 +229,7 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
       chart.setOption(
         {
           backgroundColor: 'transparent',
-          animationDuration: 450,
+          animationDuration: 300,
           animationEasing: 'cubicOut',
           grid: {
             left: 12,
@@ -291,6 +295,7 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
             },
             formatter: (params: any) => {
               if (!Array.isArray(params) || params.length === 0) return '';
+              isTipVisibleRef.current = true;
               const dataIndex = params[0].dataIndex;
 
               // Crisp haptic feedback on mobile when scrubbing over a new point

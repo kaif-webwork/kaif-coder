@@ -593,13 +593,11 @@
   }
 
   .support-upi-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
     gap: 8px;
     width: 100%;
   }
 
-  .support-upi-actions .support-toggle-qr-btn,
   .support-upi-actions .support-copy-btn {
     width: 100%;
     justify-content: center;

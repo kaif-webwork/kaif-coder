@@ -354,7 +354,7 @@ export default function AdZeroPreview() {
         {/* Fullscreen Image Preview Lightbox Modal */}
         {isLightboxOpen && (
           <div
-            className="adzero-lightbox-overlay"
+            className="adzero-lightbox-overlay" data-lenis-prevent="true"
             onClick={() => setIsLightboxOpen(false)}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}

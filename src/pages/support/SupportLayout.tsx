@@ -90,23 +90,10 @@ export default function SupportLayout() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [showQR, setShowQR] = useState<boolean>(false);
   const [qrActive, setQrActive] = useState<boolean>(true);
-  const [showUpiQR, setShowUpiQR] = useState<boolean>(false);
-  const [upiQrActive, setUpiQrActive] = useState<boolean>(true);
-  const [upiQrDataUrl, setUpiQrDataUrl] = useState<string>('');
   const [cryptoQrDataUrl, setCryptoQrDataUrl] = useState<string>('');
 
   const selectedCoin = cryptoData[selectedCoinIdx];
   const selectedNetwork = selectedCoin.networks[selectedNetworkIdx] || selectedCoin.networks[0];
-
-  // Pre-generate UPI QR code locally in 0ms (no network latency)
-  useEffect(() => {
-    const upiUri = 'upi://pay?pa=kaifc0der@ptyes&pn=Mohd%20Kaif&cu=INR';
-    void QRCode.toDataURL(upiUri, {
-      margin: 1,
-      width: 300,
-      color: { dark: '#000000', light: '#ffffff' },
-    }).then(setUpiQrDataUrl);
-  }, []);
 
   // Pre-generate Crypto QR code locally in 0ms (no network latency)
   useEffect(() => {
@@ -152,21 +139,6 @@ export default function SupportLayout() {
     const nextActive = !qrActive;
     playQrToggleSound(nextActive);
     setQrActive(nextActive);
-  };
-
-  const handleToggleShowUpiQR = () => {
-    const nextState = !showUpiQR;
-    playQrToggleSound(nextState);
-    setShowUpiQR(nextState);
-    if (nextState) {
-      setUpiQrActive(true);
-    }
-  };
-
-  const handleToggleUpiQrCard = () => {
-    const nextActive = !upiQrActive;
-    playQrToggleSound(nextActive);
-    setUpiQrActive(nextActive);
   };
 
   return (
@@ -238,14 +210,6 @@ export default function SupportLayout() {
             <div className="support-upi-actions">
               <button
                 type="button"
-                className={`support-toggle-qr-btn ${showUpiQR ? 'active' : ''}`}
-                onClick={handleToggleShowUpiQR}
-              >
-                <HiQrCode />
-                <span>{showUpiQR ? 'Hide QR' : 'Show QR'}</span>
-              </button>
-              <button
-                type="button"
                 className="support-copy-btn"
                 onClick={() => handleCopy('upi', 'kaifc0der@ptyes')}
                 title="Copy UPI ID"
@@ -265,57 +229,6 @@ export default function SupportLayout() {
               </button>
             </div>
           </div>
-
-          {showUpiQR && (
-            <div className="support-qr-display-container">
-              <div
-                className="support-qr-pixel-wrapper"
-                onClick={handleToggleUpiQrCard}
-                title={upiQrActive ? 'Click to show UPI Info' : 'Click to show QR Code'}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleToggleUpiQrCard();
-                  }
-                }}
-              >
-                <PixelTransition
-                  key="upi-qr-card"
-                  firstContent={
-                    <div className="support-qr-placeholder-content">
-                      <div className="support-qr-placeholder-icon">
-                        <span className="support-upi-rupee-badge-large">₹</span>
-                      </div>
-                      <span className="support-qr-placeholder-text">UPI Payment</span>
-                      <span className="support-qr-placeholder-net">kaifc0der@ptyes</span>
-                      <span className="support-qr-placeholder-sub">Click to reveal QR Code</span>
-                    </div>
-                  }
-                  secondContent={
-                    upiQrDataUrl ? (
-                      <img
-                        src={upiQrDataUrl}
-                        alt="UPI QR Code"
-                        className="support-dynamic-qr-image"
-                      />
-                    ) : (
-                      <div className="support-dynamic-qr-image" />
-                    )
-                  }
-                  gridSize={12}
-                  pixelColor="#ffffff"
-                  animationStepDuration={0.35}
-                  isActive={upiQrActive}
-                  trigger="none"
-                  aspectRatio="100%"
-                  className="support-crypto-pixel-qr"
-                />
-              </div>
-              <p className="support-qr-hint">Scan with GPay, PhonePe, Paytm, or any UPI app</p>
-            </div>
-          )}
         </div>
 
         {/* 3. Crypto */}

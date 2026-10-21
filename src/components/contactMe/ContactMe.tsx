@@ -1,6 +1,7 @@
 import { FaGithub, FaLinkedin, FaInstagram } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { HiOutlineEnvelope, HiOutlineDocumentArrowDown } from 'react-icons/hi2';
+import { Link } from 'react-router';
 import { playClickSound } from '../../utils/sound';
 import './ContactMe.css';
 
@@ -23,20 +24,36 @@ export default function ContactMe() {
         </p>
 
         <div className="contact-buttons-row">
-          {contactButtons.map((btn) => (
-            <a
-              key={btn.name}
-              href={btn.url}
-              target={btn.url.startsWith('mailto') || btn.url.startsWith('/') ? undefined : '_blank'}
-              rel="noopener noreferrer"
-              className="contact-pill-btn"
-              aria-label={`Connect with Mohd Kaif via ${btn.name}`}
-              onClick={() => playClickSound()}
-            >
-              <span className="contact-btn-icon">{btn.icon}</span>
-              <span>{btn.name}</span>
-            </a>
-          ))}
+          {contactButtons.map((btn) => {
+            if (btn.url.startsWith('/')) {
+              return (
+                <Link
+                  key={btn.name}
+                  to={btn.url}
+                  className="contact-pill-btn"
+                  aria-label={`Connect with Mohd Kaif via ${btn.name}`}
+                  onClick={() => playClickSound()}
+                >
+                  <span className="contact-btn-icon">{btn.icon}</span>
+                  <span>{btn.name}</span>
+                </Link>
+              );
+            }
+            return (
+              <a
+                key={btn.name}
+                href={btn.url}
+                target={btn.url.startsWith('mailto') ? undefined : '_blank'}
+                rel="noopener noreferrer"
+                className="contact-pill-btn"
+                aria-label={`Connect with Mohd Kaif via ${btn.name}`}
+                onClick={() => playClickSound()}
+              >
+                <span className="contact-btn-icon">{btn.icon}</span>
+                <span>{btn.name}</span>
+              </a>
+            );
+          })}
         </div>
       </div>
     </section>

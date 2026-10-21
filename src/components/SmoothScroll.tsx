@@ -1,84 +1,51 @@
 import { useEffect } from 'react';
+import Lenis from 'lenis';
+import 'lenis/dist/lenis.css';
 import { setLenis } from '../utils/lenis';
 
 export default function SmoothScroll() {
   useEffect(() => {
-    // On touch/mobile devices, use native hardware-accelerated scrolling for 0ms latency & 100% performance
-    const isTouch =
-      typeof window !== 'undefined' &&
-      ('ontouchstart' in window ||
-        navigator.maxTouchPoints > 0 ||
-        window.matchMedia('(pointer: coarse)').matches);
+    let lenis: Lenis | null = null;
 
-    if (isTouch) {
-      return;
+    try {
+      lenis = new Lenis({
+        autoRaf: true,
+        duration: 1.15,
+        easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        orientation: 'vertical',
+        gestureOrientation: 'vertical',
+        smoothWheel: true,
+        wheelMultiplier: 1.0,
+        syncTouch: true,
+        syncTouchLerp: 0.08,
+        touchInertiaExponent: 1.6,
+        touchMultiplier: 1.2,
+        anchors: true,
+        prevent: (node: HTMLElement) => {
+          return (
+            node?.hasAttribute?.('data-lenis-prevent') ||
+            Boolean(node?.closest?.('[data-lenis-prevent]')) ||
+            Boolean(node?.closest?.('.chat-window-container')) ||
+            Boolean(node?.closest?.('.cert-lightbox-overlay')) ||
+            Boolean(node?.closest?.('.adzero-lightbox-overlay')) ||
+            Boolean(node?.closest?.('.analytics-chart-canvas-container'))
+          );
+        },
+      });
+
+      setLenis(lenis);
+      (window as unknown as { lenis?: Lenis }).lenis = lenis;
+    } catch (err) {
+      console.warn('Failed to initialize Lenis smooth scroll:', err);
     }
 
-    let lenisInstance: any = null;
-    let destroyed = false;
-
-    // Dynamically load Lenis on idle for desktop wheel smoothing without blocking the initial paint
-    const initLenis = async () => {
-      try {
-        const [{ default: Lenis }] = await Promise.all([
-          import('lenis'),
-          import('lenis/dist/lenis.css'),
-        ]);
-
-        if (destroyed) return;
-
-        lenisInstance = new Lenis({
-          autoRaf: true,
-          duration: 1.1,
-          easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-          orientation: 'vertical',
-          gestureOrientation: 'vertical',
-          smoothWheel: true,
-          wheelMultiplier: 1.0,
-          touchMultiplier: 1.0,
-          infinite: false,
-          prevent: (node: HTMLElement) => {
-            return (
-              node?.hasAttribute?.('data-lenis-prevent') ||
-              Boolean(node?.closest?.('[data-lenis-prevent]')) ||
-              Boolean(node?.closest?.('.chat-window-container'))
-            );
-          },
-        });
-
-        setLenis(lenisInstance);
-        (window as unknown as { lenis?: any }).lenis = lenisInstance;
-      } catch (err) {
-        console.warn('Lenis dynamic load deferred', err);
+    return () => {
+      if (lenis) {
+        lenis.destroy();
+        setLenis(null);
+        delete (window as unknown as { lenis?: Lenis }).lenis;
       }
     };
-
-    const win = typeof window !== 'undefined' ? (window as any) : null;
-    if (win && 'requestIdleCallback' in win) {
-      const handle = win.requestIdleCallback(initLenis, { timeout: 1500 });
-      return () => {
-        destroyed = true;
-        if ('cancelIdleCallback' in win) {
-          win.cancelIdleCallback(handle);
-        }
-        if (lenisInstance) {
-          lenisInstance.destroy();
-          setLenis(null);
-          delete win.lenis;
-        }
-      };
-    } else {
-      const timer = setTimeout(initLenis, 400);
-      return () => {
-        destroyed = true;
-        clearTimeout(timer);
-        if (lenisInstance) {
-          lenisInstance.destroy();
-          setLenis(null);
-          if (win) delete win.lenis;
-        }
-      };
-    }
   }, []);
 
   return null;

@@ -3,7 +3,7 @@ import type { AnalyticsPeriod, AnalyticsData, AnalyticsSeriesPoint } from '../da
 const STORAGE_KEY = 'kaif_real_analytics_v4';
 const VISITOR_KEY = 'kaif_device_id_v4';
 
-interface StoredDayData {
+export interface StoredDayData {
   pageviews: number;
   visitors: string[]; // unique visitor IDs for the day
   pvKeys?: string[]; // unique pageview keys: `${visitorId}_${path}`
@@ -11,7 +11,7 @@ interface StoredDayData {
   hourlyVisitors?: Record<string, string[]>; // unique visitor IDs per hour "00".."23"
 }
 
-interface StoredAnalyticsData {
+export interface StoredAnalyticsData {
   daily: Record<string, StoredDayData>;
 }
 
@@ -29,7 +29,7 @@ export function getVisitorId(): string {
   }
 }
 
-function getStoredData(): StoredAnalyticsData {
+export function getStoredData(): StoredAnalyticsData {
   try {
     if (typeof localStorage === 'undefined') return { daily: {} };
     let raw = localStorage.getItem(STORAGE_KEY);
@@ -40,7 +40,6 @@ function getStoredData(): StoredAnalyticsData {
         try {
           const v3Data = JSON.parse(v3Raw);
           if (v3Data && typeof v3Data === 'object' && v3Data.daily) {
-            // Sanitize v3 data so pageviews cannot exceed unique pvKeys
             Object.keys(v3Data.daily).forEach((d) => {
               const item = v3Data.daily[d];
               if (item) {
@@ -53,7 +52,7 @@ function getStoredData(): StoredAnalyticsData {
             localStorage.setItem(STORAGE_KEY, raw);
           }
         } catch {
-          // ignore
+          // ignore migration error
         }
       }
     }
@@ -71,7 +70,7 @@ function getStoredData(): StoredAnalyticsData {
   return { daily: {} };
 }
 
-function saveStoredData(data: StoredAnalyticsData) {
+export function saveStoredData(data: StoredAnalyticsData) {
   try {
     if (typeof localStorage === 'undefined') return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -80,7 +79,7 @@ function saveStoredData(data: StoredAnalyticsData) {
   }
 }
 
-function getDateKey(date: Date): string {
+export function getDateKey(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
@@ -165,7 +164,7 @@ export function calculateAccurateGrowth(
     }
   }
 
-  // 4. Dynamic rate for single active baseline - NEVER freezes at 100%
+  // 4. Dynamic rate for single active baseline
   const volumeMultiplier = type === 'pageviews' ? 3.2 : 2.5;
   const baseOffset = type === 'pageviews' ? 14.5 : 11.2;
   const dynamicPercentage = Math.min(250.0, baseOffset + curr * volumeMultiplier);
@@ -178,9 +177,9 @@ export function calculateAccurateGrowth(
 
 /**
  * Record a real pageview and unique visitor with STRICT per-device deduplication.
- * Refreshes, reloads, or duplicate visits from the same device WILL NOT increment page views or visitors.
+ * Refreshes, reloads, or duplicate visits from the same device on the same route WILL NOT inflate counts.
  */
-export function recordRealPageView(path: string, isNewDevice: boolean = false) {
+export function recordRealPageView(path: string, _isNewDevice: boolean = false) {
   try {
     const visitorId = getVisitorId();
     const now = new Date();
@@ -213,15 +212,10 @@ export function recordRealPageView(path: string, isNewDevice: boolean = false) {
     const isAlreadyCountedVisitor = day.visitors.includes(visitorId);
     const isAlreadyViewedPage = day.pvKeys.includes(devicePathKey);
 
-    // If this device has already visited this route, DO NOT increment anything!
-    if (isAlreadyViewedPage) {
-      return;
-    }
-
     let changed = false;
 
-    // 1. Add unique visitor if new device or first time device is seen today
-    if ((isNewDevice || day.visitors.length === 0) && !isAlreadyCountedVisitor) {
+    // 1. Add unique visitor if this device has not yet been counted today
+    if (!isAlreadyCountedVisitor) {
       day.visitors.push(visitorId);
       if (!day.hourlyVisitors[hour].includes(visitorId)) {
         day.hourlyVisitors[hour].push(visitorId);
@@ -229,7 +223,7 @@ export function recordRealPageView(path: string, isNewDevice: boolean = false) {
       changed = true;
     }
 
-    // 2. Add unique pageview if this route hasn't been viewed by this device
+    // 2. Add unique pageview if this route hasn't been viewed by this device today
     if (!isAlreadyViewedPage) {
       day.pvKeys.push(devicePathKey);
       day.pageviews = day.pvKeys.length;
@@ -239,16 +233,14 @@ export function recordRealPageView(path: string, isNewDevice: boolean = false) {
 
     if (changed) {
       saveStoredData(data);
-      // Notify active analytics components of real-time update
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('kaif_analytics_updated', { detail: { path } }));
       }
     }
   } catch {
-    // Storage unavailable safely suppressed
+    // Storage safely suppressed
   }
 }
-
 
 /**
  * Fallback empty analytics structure with clean timestamps
@@ -273,17 +265,51 @@ function getEmptyFallbackAnalytics(period: AnalyticsPeriod): AnalyticsData {
     growthPageviewsStatus: 'neutral',
     isVisitorsUp: true,
     isPageviewsUp: true,
+    totalLifetimeVisitors: 0,
+    totalLifetimePageviews: 0,
   };
 }
 
 /**
- * Get accurate real analytics data and exact growth percentages for period ('24h' | '7d' | '30d')
+ * Compute lifetime visitors and pageviews across all tracked days in storage
+ */
+export function computeLifetimeMetrics(data: StoredAnalyticsData): { totalVisitors: number; totalPageviews: number } {
+  try {
+    const allVisitors = new Set<string>();
+    let totalPageviews = 0;
+
+    Object.keys(data.daily || {}).forEach((dateKey) => {
+      const day = data.daily[dateKey];
+      if (day) {
+        if (Array.isArray(day.visitors)) {
+          day.visitors.forEach((v) => allVisitors.add(v));
+        }
+        const pv = Array.isArray(day.pvKeys)
+          ? day.pvKeys.length
+          : Number(day.pageviews) || 0;
+        totalPageviews += pv;
+      }
+    });
+
+    return {
+      totalVisitors: allVisitors.size,
+      totalPageviews,
+    };
+  } catch {
+    return { totalVisitors: 0, totalPageviews: 0 };
+  }
+}
+
+/**
+ * Get accurate real analytics data and exact growth percentages for period ('24h' | '7d' | '30d').
+ * Executes instantly (0ms) without any network latency.
  */
 export function getRealAnalyticsForPeriod(period: AnalyticsPeriod): AnalyticsData {
   try {
     const data = getStoredData();
     data.daily = data.daily || {};
     const now = new Date();
+    const { totalVisitors: lifetimeVisitors, totalPageviews: lifetimePageviews } = computeLifetimeMetrics(data);
 
     if (period === '24h') {
       const points = 24;
@@ -293,7 +319,7 @@ export function getRealAnalyticsForPeriod(period: AnalyticsPeriod): AnalyticsDat
       const currVisitors = new Set<string>();
       const prevVisitors = new Set<string>();
 
-      // Current 24h
+      // Current 24 hours (sliding window from 23 hours ago to current hour)
       for (let i = points - 1; i >= 0; i--) {
         const d = new Date(now.getTime() - i * 3600000);
         const dateKey = getDateKey(d);
@@ -317,7 +343,7 @@ export function getRealAnalyticsForPeriod(period: AnalyticsPeriod): AnalyticsDat
         series.push({ timestamp, pageviews: pv, visitors: uv });
       }
 
-      // Previous 24h (hours 24..47 ago) for accurate mathematical delta
+      // Previous 24 hours (hours 24..47 ago) for accurate mathematical delta
       for (let i = points * 2 - 1; i >= points; i--) {
         const d = new Date(now.getTime() - i * 3600000);
         const dateKey = getDateKey(d);
@@ -354,6 +380,8 @@ export function getRealAnalyticsForPeriod(period: AnalyticsPeriod): AnalyticsDat
         growthPageviewsStatus: pvGrowth.status,
         isVisitorsUp: uvGrowth.status !== 'down',
         isPageviewsUp: pvGrowth.status !== 'down',
+        totalLifetimeVisitors: lifetimeVisitors,
+        totalLifetimePageviews: lifetimePageviews,
       };
     }
 
@@ -364,8 +392,6 @@ export function getRealAnalyticsForPeriod(period: AnalyticsPeriod): AnalyticsDat
     let sumDailyPrevPv = 0;
     const currVisitors = new Set<string>();
     const prevVisitors = new Set<string>();
-    const currPvKeys = new Set<string>();
-    const prevPvKeys = new Set<string>();
 
     // Current period (days 0..N-1)
     for (let i = days - 1; i >= 0; i--) {
@@ -377,20 +403,12 @@ export function getRealAnalyticsForPeriod(period: AnalyticsPeriod): AnalyticsDat
       const pv = Array.isArray(dayData?.pvKeys)
         ? dayData.pvKeys.length
         : Number(dayData?.pageviews) || 0;
-      const uv = Array.isArray(dayData?.visitors)
-        ? dayData.visitors.length
-        : pv > 0
-        ? 1
-        : 0;
+      const uvList = Array.isArray(dayData?.visitors) ? dayData.visitors : [];
+      const uv = uvList.length > 0 ? uvList.length : pv > 0 ? 1 : 0;
 
-      if (Array.isArray(dayData?.visitors) && dayData.visitors.length > 0) {
-        dayData.visitors.forEach((v) => currVisitors.add(v));
-      } else if (pv > 0) {
-        currVisitors.add('v_current');
-      }
-
-      if (Array.isArray(dayData?.pvKeys)) {
-        dayData.pvKeys.forEach((k) => currPvKeys.add(k));
+      uvList.forEach((v) => currVisitors.add(v));
+      if (uvList.length === 0 && pv > 0) {
+        currVisitors.add(`v_${dateKey}`);
       }
 
       sumDailyPv += pv;
@@ -406,15 +424,11 @@ export function getRealAnalyticsForPeriod(period: AnalyticsPeriod): AnalyticsDat
       const pv = Array.isArray(dayData?.pvKeys)
         ? dayData.pvKeys.length
         : Number(dayData?.pageviews) || 0;
+      const uvList = Array.isArray(dayData?.visitors) ? dayData.visitors : [];
 
-      if (Array.isArray(dayData?.visitors) && dayData.visitors.length > 0) {
-        dayData.visitors.forEach((v) => prevVisitors.add(v));
-      } else if (pv > 0) {
-        prevVisitors.add('v_prev');
-      }
-
-      if (Array.isArray(dayData?.pvKeys)) {
-        dayData.pvKeys.forEach((k) => prevPvKeys.add(k));
+      uvList.forEach((v) => prevVisitors.add(v));
+      if (uvList.length === 0 && pv > 0) {
+        prevVisitors.add(`v_${dateKey}`);
       }
 
       sumDailyPrevPv += pv;
@@ -423,11 +437,11 @@ export function getRealAnalyticsForPeriod(period: AnalyticsPeriod): AnalyticsDat
     const totalVisitors = currVisitors.size > 0 ? currVisitors.size : sumDailyPv > 0 ? 1 : 0;
     const totalPrevVisitors = prevVisitors.size > 0 ? prevVisitors.size : sumDailyPrevPv > 0 ? 1 : 0;
 
-    const totalPv = currPvKeys.size > 0 ? currPvKeys.size : sumDailyPv;
-    const totalPrevPv = prevPvKeys.size > 0 ? prevPvKeys.size : sumDailyPrevPv;
+    // Total page views across the period strictly matches the sum of daily pageviews!
+    const totalPv = sumDailyPv;
 
     const uvGrowth = calculateAccurateGrowth(totalVisitors, totalPrevVisitors, series, 'visitors');
-    const pvGrowth = calculateAccurateGrowth(totalPv, totalPrevPv, series, 'pageviews');
+    const pvGrowth = calculateAccurateGrowth(totalPv, sumDailyPrevPv, series, 'pageviews');
 
     return {
       pageviews: totalPv,
@@ -439,6 +453,8 @@ export function getRealAnalyticsForPeriod(period: AnalyticsPeriod): AnalyticsDat
       growthPageviewsStatus: pvGrowth.status,
       isVisitorsUp: uvGrowth.status !== 'down',
       isPageviewsUp: pvGrowth.status !== 'down',
+      totalLifetimeVisitors: lifetimeVisitors,
+      totalLifetimePageviews: lifetimePageviews,
     };
   } catch (err) {
     console.error('getRealAnalyticsForPeriod error:', err);
