@@ -123,22 +123,12 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
       }
     };
 
-    // Debounced scroll listener: suppresses tooltip during active scroll, restores hover immediately after
-    let scrollDebounceTimer: number | null = null;
+    // Dismiss tooltip on scroll or modal/bot open events
     const handleGlobalScroll = () => {
-      isScrollingRef.current = true;
       hideChartTip();
-      if (scrollDebounceTimer) {
-        window.clearTimeout(scrollDebounceTimer);
-      }
-      scrollDebounceTimer = window.setTimeout(() => {
-        isScrollingRef.current = false;
-      }, 100);
     };
 
-    // Dismiss on modal/bot open events
     const handleModalDismiss = () => {
-      isScrollingRef.current = true;
       hideChartTip();
     };
 
@@ -185,9 +175,6 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
       window.removeEventListener('hide-all-tooltips', handleModalDismiss);
 
       window.clearTimeout(resizeTimer);
-      if (scrollDebounceTimer) {
-        window.clearTimeout(scrollDebounceTimer);
-      }
       if (hideTimerRef.current) {
         window.clearTimeout(hideTimerRef.current);
         hideTimerRef.current = null;
@@ -309,10 +296,8 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
             trigger: 'axis',
             triggerOn: 'mousemove|click',
             confine: true,
-            appendTo: () => chartRef.current || undefined,
-            appendToBody: false,
             enterable: false,
-            hideDelay: 100,
+            hideDelay: 80,
             transitionDuration: 0.05,
             backgroundColor: 'rgba(11, 13, 14, 0.94)',
             borderColor: '#444444',
@@ -330,15 +315,13 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
               },
             },
             formatter: (params: any) => {
-              if (isScrollingRef.current) return '';
-              if (!Array.isArray(params) || params.length === 0) return '';
+              const items = Array.isArray(params) ? params : [params];
+              if (!items || items.length === 0 || !items[0]) return '';
               isTipVisibleRef.current = true;
-              const dataIndex = params[0].dataIndex;
+              const dataIndex = items[0].dataIndex;
 
               // Crisp haptic feedback only on deliberate mobile selection
               if (
-                !isScrollingRef.current &&
-                !document.documentElement.classList.contains('is-scrolling') &&
                 typeof dataIndex === 'number' &&
                 dataIndex !== lastHapticIndexRef.current
               ) {
