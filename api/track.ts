@@ -29,7 +29,7 @@ function getRedis(): Redis | null {
 }
 
 const CORS_HEADERS = {
-  'content-type': 'application/json',
+  'content-type': 'application/json; charset=utf-8',
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET, POST, OPTIONS',
   'access-control-allow-headers': 'Content-Type, Authorization',

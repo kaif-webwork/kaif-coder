@@ -175,44 +175,7 @@ export function getStoredData(): StoredAnalyticsData {
       }
     }
 
-    // 2. Also inspect sessionStorage for pre-existing cached server datasets
-    if (typeof sessionStorage !== 'undefined') {
-      const sessionKeys = [
-        'kaif_analytics_server_cache_v6_30d',
-        'kaif_analytics_server_cache_v5_30d',
-        'kaif_analytics_server_cache_v6_7d',
-        'kaif_analytics_server_cache_v5_7d',
-      ];
-      for (const sk of sessionKeys) {
-        const raw = sessionStorage.getItem(sk);
-        if (!raw) continue;
-        try {
-          const parsed = JSON.parse(raw);
-          if (parsed && Array.isArray(parsed.series)) {
-            parsed.series.forEach((pt: AnalyticsSeriesPoint) => {
-              if (pt && pt.timestamp && (pt.pageviews > 0 || pt.visitors > 0)) {
-                const dateKey = getDateKey(new Date(pt.timestamp));
-                if (!mergedDaily[dateKey]) {
-                  mergedDaily[dateKey] = {
-                    pageviews: pt.pageviews,
-                    visitors: Array.from({ length: pt.visitors }, (_, i) => `cached_v_${i}`),
-                    pvKeys: Array.from({ length: pt.pageviews }, (_, i) => `cached_pv_${i}`),
-                    hourly: {},
-                    hourlyVisitors: {},
-                  };
-                } else {
-                  mergedDaily[dateKey].pageviews = Math.max(mergedDaily[dateKey].pageviews, pt.pageviews);
-                }
-              }
-            });
-          }
-        } catch {
-          // ignore
-        }
-      }
-    }
-
-    // Persist consolidated master copy
+    // Persist consolidated master copy across all historical localStorage versions
     if (Object.keys(mergedDaily).length > 0) {
       const masterData = { daily: mergedDaily };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(masterData));

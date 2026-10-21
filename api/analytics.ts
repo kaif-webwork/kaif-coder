@@ -156,7 +156,7 @@ function computeGrowth(
 }
 
 const CORS_HEADERS = {
-  'content-type': 'application/json',
+  'content-type': 'application/json; charset=utf-8',
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET, POST, OPTIONS',
   'access-control-allow-headers': 'Content-Type, Authorization',
@@ -202,9 +202,9 @@ export default async function handler(req: Request) {
           const hourKey = String(d.getUTCHours()).padStart(2, '0');
           timestamps.push(d.getTime());
           pipeline.get(`pvh_${dateKey}_${hourKey}`);
-          pipeline.get(`uvh_${dateKey}_${hourKey}`);
+          pipeline.scard(`uvh_set_${dateKey}_${hourKey}`);
         }
-        pipeline.get('tot_uv');
+        pipeline.scard('tot_uv_set');
         pipeline.get('tot_pv');
 
         const results = await pipeline.exec();
@@ -259,9 +259,9 @@ export default async function handler(req: Request) {
           const dateKey = d.toISOString().slice(0, 10);
           timestamps.push(d.getTime());
           pipeline.get(`pv_${dateKey}`);
-          pipeline.get(`uv_${dateKey}`);
+          pipeline.scard(`uv_set_${dateKey}`);
         }
-        pipeline.get('tot_uv');
+        pipeline.scard('tot_uv_set');
         pipeline.get('tot_pv');
 
         const results = await pipeline.exec();

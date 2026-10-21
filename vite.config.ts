@@ -242,12 +242,12 @@ function localAnalyticsPlugin(): Plugin {
               }
 
               res.statusCode = 200;
-              res.setHeader('Content-Type', 'application/json');
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
               res.setHeader('Access-Control-Allow-Origin', '*');
               res.end(JSON.stringify({ ok: true, dev: true }));
             } catch {
               res.statusCode = 200;
-              res.setHeader('Content-Type', 'application/json');
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
               res.setHeader('Access-Control-Allow-Origin', '*');
               res.end(JSON.stringify({ ok: true, dev: true }));
             }
@@ -366,7 +366,7 @@ function localAnalyticsPlugin(): Plugin {
               };
 
               res.statusCode = 200;
-              res.setHeader('Content-Type', 'application/json');
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
               res.setHeader('Access-Control-Allow-Origin', '*');
               res.end(JSON.stringify(result));
               return;
@@ -443,7 +443,7 @@ function localAnalyticsPlugin(): Plugin {
             };
 
             res.statusCode = 200;
-            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
             res.setHeader('Access-Control-Allow-Origin', '*');
             res.end(JSON.stringify(result));
             return;
