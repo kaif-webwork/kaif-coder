@@ -70,6 +70,10 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
     let touchStartY = 0;
     let touchStartX = 0;
 
+    const handlePointerEnterOrMove = () => {
+      isScrollingRef.current = false;
+    };
+
     const handleTouchStart = (e: TouchEvent) => {
       if (hideTimerRef.current) {
         window.clearTimeout(hideTimerRef.current);
@@ -87,9 +91,11 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
         const deltaY = Math.abs(e.touches[0].clientY - touchStartY);
         const deltaX = Math.abs(e.touches[0].clientX - touchStartX);
         // If gesture is vertical scroll, mark scrolling and dismiss tooltip immediately
-        if (deltaY > 5 && deltaY > deltaX) {
+        if (deltaY > 8 && deltaY > deltaX * 1.5) {
           isScrollingRef.current = true;
           hideChartTip();
+        } else {
+          isScrollingRef.current = false;
         }
       }
     };
@@ -100,13 +106,13 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
         hideChartTip();
         return;
       }
-      // On mobile tap, let user see point data, then automatically hide after 1500ms
+      // On mobile tap, let user see point data, then automatically hide after 2000ms
       if (hideTimerRef.current) {
         window.clearTimeout(hideTimerRef.current);
       }
       hideTimerRef.current = window.setTimeout(() => {
         hideChartTip();
-      }, 1500);
+      }, 2000);
     };
 
     // Outside tap dismiss
@@ -117,11 +123,31 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
       }
     };
 
-    // Immediate dismiss on scroll or modal events
-    const handleGlobalDismiss = () => {
+    // Debounced scroll listener: suppresses tooltip during active scroll, restores hover immediately after
+    let scrollDebounceTimer: number | null = null;
+    const handleGlobalScroll = () => {
+      isScrollingRef.current = true;
+      hideChartTip();
+      if (scrollDebounceTimer) {
+        window.clearTimeout(scrollDebounceTimer);
+      }
+      scrollDebounceTimer = window.setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 100);
+    };
+
+    // Dismiss on modal/bot open events
+    const handleModalDismiss = () => {
       isScrollingRef.current = true;
       hideChartTip();
     };
+
+    // Attach hover and move listeners directly to the container
+    container.addEventListener('mouseenter', handlePointerEnterOrMove);
+    container.addEventListener('mousemove', handlePointerEnterOrMove);
+    container.addEventListener('pointerenter', handlePointerEnterOrMove);
+    container.addEventListener('pointermove', handlePointerEnterOrMove);
+    container.addEventListener('mouseleave', hideChartTip);
 
     container.addEventListener('touchstart', handleTouchStart, { passive: true });
     container.addEventListener('touchmove', handleTouchMove, { passive: true });
@@ -129,30 +155,39 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
     container.addEventListener('touchcancel', hideChartTip, { passive: true });
 
     window.addEventListener('resize', handleResize);
-    window.addEventListener('scroll', handleGlobalDismiss, { passive: true });
+    window.addEventListener('scroll', handleGlobalScroll, { passive: true });
     window.addEventListener('touchstart', handleOutsideInteraction, { passive: true });
     window.addEventListener('pointerdown', handleOutsideInteraction, { passive: true });
-    window.addEventListener('open-kairo-ai', handleGlobalDismiss);
-    window.addEventListener('open-kivo-ai', handleGlobalDismiss);
-    window.addEventListener('open-kaif-ai', handleGlobalDismiss);
-    window.addEventListener('hide-all-tooltips', handleGlobalDismiss);
+    window.addEventListener('open-kairo-ai', handleModalDismiss);
+    window.addEventListener('open-kivo-ai', handleModalDismiss);
+    window.addEventListener('open-kaif-ai', handleModalDismiss);
+    window.addEventListener('hide-all-tooltips', handleModalDismiss);
 
     return () => {
+      container.removeEventListener('mouseenter', handlePointerEnterOrMove);
+      container.removeEventListener('mousemove', handlePointerEnterOrMove);
+      container.removeEventListener('pointerenter', handlePointerEnterOrMove);
+      container.removeEventListener('pointermove', handlePointerEnterOrMove);
+      container.removeEventListener('mouseleave', hideChartTip);
+
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('touchend', handleTouchEnd);
       container.removeEventListener('touchcancel', hideChartTip);
 
       window.removeEventListener('resize', handleResize);
-      window.removeEventListener('scroll', handleGlobalDismiss);
+      window.removeEventListener('scroll', handleGlobalScroll);
       window.removeEventListener('touchstart', handleOutsideInteraction);
       window.removeEventListener('pointerdown', handleOutsideInteraction);
-      window.removeEventListener('open-kairo-ai', handleGlobalDismiss);
-      window.removeEventListener('open-kivo-ai', handleGlobalDismiss);
-      window.removeEventListener('open-kaif-ai', handleGlobalDismiss);
-      window.removeEventListener('hide-all-tooltips', handleGlobalDismiss);
+      window.removeEventListener('open-kairo-ai', handleModalDismiss);
+      window.removeEventListener('open-kivo-ai', handleModalDismiss);
+      window.removeEventListener('open-kaif-ai', handleModalDismiss);
+      window.removeEventListener('hide-all-tooltips', handleModalDismiss);
 
       window.clearTimeout(resizeTimer);
+      if (scrollDebounceTimer) {
+        window.clearTimeout(scrollDebounceTimer);
+      }
       if (hideTimerRef.current) {
         window.clearTimeout(hideTimerRef.current);
         hideTimerRef.current = null;
@@ -272,36 +307,30 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
           tooltip: {
             show: true,
             trigger: 'axis',
-            triggerOn:
-              typeof window !== 'undefined' &&
-              ('ontouchstart' in window ||
-                navigator.maxTouchPoints > 0 ||
-                window.matchMedia('(pointer: coarse)').matches)
-                ? 'click'
-                : 'mousemove',
+            triggerOn: 'mousemove|click',
             confine: true,
             appendTo: () => chartRef.current || undefined,
             appendToBody: false,
             enterable: false,
-            hideDelay: 200,
-            transitionDuration: 0.1,
-            backgroundColor: 'rgba(11, 13, 14, 0.45)',
-            borderColor: '#383838',
+            hideDelay: 100,
+            transitionDuration: 0.05,
+            backgroundColor: 'rgba(11, 13, 14, 0.94)',
+            borderColor: '#444444',
             borderWidth: 1,
             borderType: 'dashed',
             padding: [10, 14],
             extraCssText:
-              'background: rgba(11, 13, 14, 0.45) !important; -webkit-backdrop-filter: blur(12px) !important; backdrop-filter: blur(12px) !important; border: 1px dashed #383838 !important; border-radius: 0px !important; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important; pointer-events: none; z-index: 10 !important; max-width: calc(100% - 16px);',
+              'background: rgba(11, 13, 14, 0.94) !important; -webkit-backdrop-filter: blur(16px) !important; backdrop-filter: blur(16px) !important; border: 1px dashed #444444 !important; border-radius: 6px !important; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75) !important; pointer-events: none; z-index: 99999 !important; max-width: calc(100% - 16px);',
             axisPointer: {
               type: 'line',
               lineStyle: {
-                color: '#383838',
+                color: '#444444',
                 type: 'dashed',
                 width: 1,
               },
             },
             formatter: (params: any) => {
-              if (isScrollingRef.current || document.documentElement.classList.contains('is-scrolling')) return '';
+              if (isScrollingRef.current) return '';
               if (!Array.isArray(params) || params.length === 0) return '';
               isTipVisibleRef.current = true;
               const dataIndex = params[0].dataIndex;
