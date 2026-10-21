@@ -10,11 +10,14 @@ interface UseAnalyticsResult {
 }
 
 const CACHE_STORAGE_KEY = 'kaif_analytics_server_cache_v6_';
+const CACHE_STORAGE_KEY_LEGACY = 'kaif_analytics_server_cache_v5_';
 
 function getCachedData(period: AnalyticsPeriod): AnalyticsData | null {
   try {
     if (typeof window !== 'undefined' && window.sessionStorage) {
-      const raw = window.sessionStorage.getItem(`${CACHE_STORAGE_KEY}${period}`);
+      const raw =
+        window.sessionStorage.getItem(`${CACHE_STORAGE_KEY}${period}`) ||
+        window.sessionStorage.getItem(`${CACHE_STORAGE_KEY_LEGACY}${period}`);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed.visitors === 'number' && Array.isArray(parsed.series)) {
@@ -142,18 +145,19 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
           setDataMap((prev) => {
             const current = prev[period] ?? getRealAnalyticsForPeriod(period);
 
-            // CRITICAL PROTECTION: Never overwrite real local data with empty server data
-            if (
-              serverData.pageviews === 0 &&
-              serverData.visitors === 0 &&
-              (current.pageviews > 0 || current.visitors > 0)
-            ) {
-              return prev;
-            }
+            // Point-by-point merge so the highest authentic counts are preserved and series is never wiped out
+            const mergedSeries = current.series.map((localPt, i) => {
+              const serverPt = serverData.series?.[i];
+              return {
+                timestamp: localPt.timestamp,
+                pageviews: Math.max(localPt.pageviews, serverPt?.pageviews ?? 0),
+                visitors: Math.max(localPt.visitors, serverPt?.visitors ?? 0),
+              };
+            });
 
-            // Merge with local numbers so highest genuine traffic is preserved
             const merged: AnalyticsData = {
               ...serverData,
+              series: mergedSeries,
               visitors: Math.max(serverData.visitors, current.visitors),
               pageviews: Math.max(serverData.pageviews, current.pageviews),
               totalLifetimeVisitors: Math.max(

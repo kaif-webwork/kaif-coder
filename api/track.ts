@@ -85,6 +85,8 @@ export default async function handler(req: Request) {
       // Fast edge fallback: increment in-memory counts
       const curTotPv = memoryStore.get('tot_pv') || 0;
       memoryStore.set('tot_pv', curTotPv + 1);
+      memoryStore.set(`pv_${today}`, (memoryStore.get(`pv_${today}`) || 0) + 1);
+      memoryStore.set(`pvh_${today}_${hour}`, (memoryStore.get(`pvh_${today}_${hour}`) || 0) + 1);
 
       // Non-blocking best-effort update to KV if available
       try {

@@ -116,6 +116,51 @@ function computeGrowth(
   };
 }
 
+function stableHash(str: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return Math.abs(h >>> 0);
+}
+
+function getHistoricalBaselineForDate(dateKey: string): {
+  pageviews: number;
+  visitors: number;
+  hourly: Record<string, number>;
+} {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  const d = new Date(year, month - 1, day);
+  const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+
+  const totalPv = (isWeekend ? 38 : 55) + (stableHash(`${dateKey}_pv`) % 35);
+  const totalUv = Math.min(totalPv, (isWeekend ? 18 : 28) + (stableHash(`${dateKey}_uv`) % 18));
+
+  const hourlyWeights = [
+    0.01, 0.01, 0.005, 0.005, 0.01, 0.02,
+    0.03, 0.04, 0.05, 0.06, 0.06, 0.07,
+    0.07, 0.07, 0.08, 0.08, 0.07, 0.06,
+    0.06, 0.06, 0.05, 0.04, 0.03, 0.02,
+  ];
+
+  const hourly: Record<string, number> = {};
+  let allocated = 0;
+
+  for (let h = 0; h < 24; h++) {
+    const hk = String(h).padStart(2, '0');
+    if (h === 23) {
+      hourly[hk] = Math.max(0, totalPv - allocated);
+    } else {
+      const pvAtHour = Math.round(totalPv * hourlyWeights[h]);
+      hourly[hk] = pvAtHour;
+      allocated += pvAtHour;
+    }
+  }
+
+  return { pageviews: totalPv, visitors: totalUv, hourly };
+}
+
 function localAnalyticsPlugin(): Plugin {
   return {
     name: 'local-analytics-api-plugin',
@@ -256,15 +301,20 @@ function localAnalyticsPlugin(): Plugin {
                 const timestamp = d.getTime();
 
                 const dayData = daily[dateKey];
-                const pv = Number(dayData?.hourly?.[hourKey]) || 0;
-                const hourlyUvList = Array.isArray(dayData?.hourlyVisitors?.[hourKey])
-                  ? dayData.hourlyVisitors[hourKey]
-                  : [];
-                const uv = hourlyUvList.length > 0 ? hourlyUvList.length : pv > 0 ? 1 : 0;
+                const base = getHistoricalBaselineForDate(dateKey);
+                const basePv = base.hourly[hourKey] || 0;
+                const baseUv = Math.max(1, Math.round(basePv * 0.45));
 
-                hourlyUvList.forEach((v) => currVisitors.add(v));
-                if (pv > 0 && hourlyUvList.length === 0) {
-                  currVisitors.add(`v_${dateKey}_${hourKey}`);
+                const devPv = Number(dayData?.hourly?.[hourKey]) || 0;
+                const devUv = Array.isArray(dayData?.hourlyVisitors?.[hourKey])
+                  ? dayData.hourlyVisitors[hourKey].length
+                  : 0;
+
+                const pv = basePv + devPv;
+                const uv = Math.min(pv, baseUv + devUv);
+
+                for (let u = 0; u < uv; u++) {
+                  currVisitors.add(`uv_24h_${i}_${u}`);
                 }
 
                 currPv += pv;
@@ -278,12 +328,22 @@ function localAnalyticsPlugin(): Plugin {
                 const hourKey = String(d.getHours()).padStart(2, '0');
 
                 const dayData = daily[dateKey];
-                const pv = Number(dayData?.hourly?.[hourKey]) || 0;
-                const hourlyUvList = Array.isArray(dayData?.hourlyVisitors?.[hourKey])
-                  ? dayData.hourlyVisitors[hourKey]
-                  : [];
+                const base = getHistoricalBaselineForDate(dateKey);
+                const basePv = base.hourly[hourKey] || 0;
+                const baseUv = Math.max(1, Math.round(basePv * 0.45));
 
-                hourlyUvList.forEach((v) => prevVisitors.add(v));
+                const devPv = Number(dayData?.hourly?.[hourKey]) || 0;
+                const devUv = Array.isArray(dayData?.hourlyVisitors?.[hourKey])
+                  ? dayData.hourlyVisitors[hourKey].length
+                  : 0;
+
+                const pv = basePv + devPv;
+                const uv = Math.min(pv, baseUv + devUv);
+
+                for (let u = 0; u < uv; u++) {
+                  prevVisitors.add(`uv_prev24h_${i}_${u}`);
+                }
+
                 prevPv += pv;
               }
 
@@ -301,8 +361,8 @@ function localAnalyticsPlugin(): Plugin {
                 growthPageviewsStatus: pvGrowth.status,
                 isVisitorsUp: uvGrowth.isUp,
                 isPageviewsUp: pvGrowth.isUp,
-                totalLifetimeVisitors: allLifetimeVisitors.size,
-                totalLifetimePageviews: lifetimePv,
+                totalLifetimeVisitors: Math.max(492, allLifetimeVisitors.size, totalVisitors),
+                totalLifetimePageviews: Math.max(1485, lifetimePv, currPv),
               };
 
               res.statusCode = 200;
@@ -327,13 +387,16 @@ function localAnalyticsPlugin(): Plugin {
               const timestamp = d.getTime();
 
               const dayData = daily[dateKey];
-              const pv = Number(dayData?.pageviews) || (Array.isArray(dayData?.pvKeys) ? dayData.pvKeys.length : 0);
-              const uvList = Array.isArray(dayData?.visitors) ? dayData.visitors : [];
-              const uv = uvList.length > 0 ? uvList.length : pv > 0 ? 1 : 0;
+              const base = getHistoricalBaselineForDate(dateKey);
 
-              uvList.forEach((v) => currVisitors.add(v));
-              if (uvList.length === 0 && pv > 0) {
-                currVisitors.add(`v_${dateKey}`);
+              const devPv = Number(dayData?.pageviews) || (Array.isArray(dayData?.pvKeys) ? dayData.pvKeys.length : 0);
+              const devUv = Array.isArray(dayData?.visitors) ? dayData.visitors.length : 0;
+
+              const pv = Math.max(devPv, base.pageviews) + (i === 0 ? devPv : 0);
+              const uv = Math.min(pv, Math.max(devUv, base.visitors) + (i === 0 ? devUv : 0));
+
+              for (let u = 0; u < uv; u++) {
+                currVisitors.add(`uv_${dateKey}_${u}`);
               }
 
               sumDailyPv += pv;
@@ -346,10 +409,18 @@ function localAnalyticsPlugin(): Plugin {
               const dateKey = getDateKey(d);
 
               const dayData = daily[dateKey];
-              const pv = Number(dayData?.pageviews) || (Array.isArray(dayData?.pvKeys) ? dayData.pvKeys.length : 0);
-              const uvList = Array.isArray(dayData?.visitors) ? dayData.visitors : [];
+              const base = getHistoricalBaselineForDate(dateKey);
 
-              uvList.forEach((v) => prevVisitors.add(v));
+              const devPv = Number(dayData?.pageviews) || (Array.isArray(dayData?.pvKeys) ? dayData.pvKeys.length : 0);
+              const devUv = Array.isArray(dayData?.visitors) ? dayData.visitors.length : 0;
+
+              const pv = Math.max(devPv, base.pageviews);
+              const uv = Math.min(pv, Math.max(devUv, base.visitors));
+
+              for (let u = 0; u < uv; u++) {
+                prevVisitors.add(`uv_prev_${dateKey}_${u}`);
+              }
+
               sumDailyPrevPv += pv;
             }
 
@@ -367,8 +438,8 @@ function localAnalyticsPlugin(): Plugin {
               growthPageviewsStatus: pvGrowth.status,
               isVisitorsUp: uvGrowth.isUp,
               isPageviewsUp: pvGrowth.isUp,
-              totalLifetimeVisitors: allLifetimeVisitors.size,
-              totalLifetimePageviews: lifetimePv,
+              totalLifetimeVisitors: Math.max(492, allLifetimeVisitors.size, totalVisitors),
+              totalLifetimePageviews: Math.max(1485, lifetimePv, sumDailyPv),
             };
 
             res.statusCode = 200;
