@@ -295,7 +295,7 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
             show: true,
             trigger: 'axis',
             triggerOn: 'mousemove|click',
-            confine: true,
+            confine: false,
             enterable: false,
             hideDelay: 80,
             transitionDuration: 0.05,
@@ -304,8 +304,31 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
             borderWidth: 1,
             borderType: 'dashed',
             padding: [10, 14],
+            position: (point: [number, number], _params: any, _dom: any, _rect: any, size: { contentSize: [number, number]; viewSize: [number, number] }) => {
+              const mouseX = point[0];
+              const boxWidth = size?.contentSize?.[0] || 180;
+              const boxHeight = size?.contentSize?.[1] || 90;
+              const viewWidth = size?.viewSize?.[0] || 320;
+              const viewHeight = size?.viewSize?.[1] || 220;
+
+              // Place card to the left or right of the pointer
+              let left = mouseX > viewWidth / 2 ? mouseX - boxWidth - 14 : mouseX + 14;
+              if (left < 8) left = 8;
+              if (left + boxWidth > viewWidth - 8) left = Math.max(8, viewWidth - boxWidth - 8);
+
+              // Position vertically: sit neatly above the pointer if room, else pin near top
+              let top = point[1] - boxHeight - 12;
+              if (top < 10) {
+                top = 10;
+              }
+              if (top + boxHeight > viewHeight - 6) {
+                top = Math.max(8, viewHeight - boxHeight - 6);
+              }
+
+              return [left, top];
+            },
             extraCssText:
-              'background: rgba(11, 13, 14, 0.94) !important; -webkit-backdrop-filter: blur(16px) !important; backdrop-filter: blur(16px) !important; border: 1px dashed #444444 !important; border-radius: 6px !important; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75) !important; pointer-events: none; z-index: 99999 !important; max-width: calc(100% - 16px);',
+              'background: rgba(11, 13, 14, 0.94) !important; -webkit-backdrop-filter: blur(16px) !important; backdrop-filter: blur(16px) !important; border: 1px dashed #444444 !important; border-radius: 6px !important; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75) !important; pointer-events: none; z-index: 99999 !important;',
             axisPointer: {
               type: 'line',
               lineStyle: {
@@ -332,7 +355,7 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
               const point = displaySeries[dataIndex];
               const dateStr = point
                 ? formatTooltipDate(point.timestamp)
-                : params[0].axisValueLabel || '';
+                : items[0]?.axisValueLabel || '';
 
               let visitors = 0;
               let pageviews = 0;
@@ -341,10 +364,10 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
                 visitors = typeof point.visitors === 'number' ? point.visitors : 0;
                 pageviews = typeof point.pageviews === 'number' ? point.pageviews : 0;
               } else {
-                params.forEach((item: any) => {
-                  if (item.seriesName === 'Visitors') {
+                items.forEach((item: any) => {
+                  if (item?.seriesName === 'Visitors') {
                     visitors = typeof item.value === 'number' ? item.value : 0;
-                  } else if (item.seriesName === 'Page Views') {
+                  } else if (item?.seriesName === 'Page Views') {
                     pageviews = typeof item.value === 'number' ? item.value : 0;
                   }
                 });
@@ -449,7 +472,7 @@ export default function AnalyticsChart({ period, series }: AnalyticsChartProps) 
         width: '100%',
         height: '220px',
         position: 'relative',
-        overflow: 'hidden',
+        overflow: 'visible',
         touchAction: 'pan-y',
       }}
     />

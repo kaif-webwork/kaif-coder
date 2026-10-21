@@ -184,7 +184,7 @@
 .analytics-chart-render {
   width: 100%;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
@@ -193,7 +193,7 @@
 .analytics-chart-canvas-container {
   width: 100%;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   touch-action: pan-y !important;
 }
 
