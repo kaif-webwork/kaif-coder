@@ -75,27 +75,16 @@ const KNOWLEDGE_BASE: KnowledgeModule[] = [
   // 1. AdZero App - Comprehensive Overview
   {
     id: 'adzero_overview',
-    keywords: ['adzero', 'ad-zero', 'android app', 'streaming app', 'video player', 'apk'],
+    keywords: ['adzero', 'ad-zero', 'android app', 'streaming app', 'video player', 'apk', 'project', 'projects'],
     patterns: [
       /\b(adzero|ad-zero)\b/i,
       /\b(app (kya hai|batao|kaisa hai|features|detail))\b/i,
-      /\b(tell me about adzero|what is adzero)\b/i,
+      /\b(tell me about adzero|what is adzero|show me projects|what projects)\b/i,
     ],
     weight: 12,
-    response: `### AdZero — Entertainment Without Interruptions
+    response: `Mohd Kaif engineered **AdZero (v4.4)** — a native Android streaming app with 100% ad-blocking, background playback, and built-in SponsorBlock.
 
 ![AdZero v4.4 Android Streaming App](/images/projects/adzero-thumb.jpg)
-
-It's wonderful to tell you about **AdZero (v4.4)**! Mohd Kaif created this project to solve a genuine, everyday problem: how frustrating it is when intrusive ads and sponsored interruptions ruin your video streaming and learning experience.
-
-:::card Thoughtful Android Engineering
-- **100% Ad-Free Experience**: Natively blocks all pre-roll, mid-roll video ads, and banner popups with zero interruptions.
-- **Background & PiP Playback**: Listen to lectures, podcasts, or music with your phone screen turned off or while multitasking in Picture-in-Picture.
-- **SponsorBlock Integration**: Intelligently skips sponsored segments, subscriber reminders, and non-music intros.
-- **Privacy First**: No Google account required. Your viewing history stays safely stored on your device.
-:::
-
-[tags: Kotlin, Android Jetpack, Material 3, Firebase, Retrofit 2, Coil, Room SQLite]
 
 [action: Explore AdZero](/projects/adzero)
 [action: Download AdZero APK](https://github.com/kaif-webwork/AdZero/releases/download/v4.4/adzero.apk)
@@ -111,19 +100,9 @@ It's wonderful to tell you about **AdZero (v4.4)**! Mohd Kaif created this proje
       /\b(adzero (download|chahiye|kaha milega|install))\b/i,
     ],
     weight: 14,
-    response: `### Download AdZero v4.4 Android APK
+    response: `You can download the verified production build of **AdZero v4.4** directly from GitHub Releases. It's lightweight (~25 MB), safe, and requires Android 8.0+.
 
 ![AdZero v4.4 Android Streaming App](/images/projects/adzero-thumb.jpg)
-
-You can grab the official, verified production build directly from [GitHub Releases](https://github.com/kaif-webwork/AdZero/releases). It's completely free and safe to install:
-
-:::card Release Specs & Installation
-- **Current Version**: v4.4 (Latest Native Production Build)
-- **Architecture**: Universal Android (ARM64 / ARMv7)
-- **Requirements**: Compatible with Android 8.0 (Oreo) and above
-- **Package Size**: Lightweight ~25 MB
-- **Direct Link**: [Download APK (v4.4)](https://github.com/kaif-webwork/AdZero/releases/download/v4.4/adzero.apk)
-:::
 
 [action: Download AdZero APK](https://github.com/kaif-webwork/AdZero/releases/download/v4.4/adzero.apk)
 [action: Explore AdZero](/projects/adzero)
@@ -139,19 +118,9 @@ You can grab the official, verified production build directly from [GitHub Relea
       /\b(how does adzero work|how adzero was built)\b/i,
     ],
     weight: 11,
-    response: `### Under the Hood: AdZero Technical Architecture
+    response: `AdZero is built in Kotlin with Android Jetpack and reactive MVVM, featuring Retrofit 2 interceptors for stream extraction and Room SQLite for offline playlists.
 
-AdZero is built from the ground up following modern Android Clean Architecture and reactive MVVM principles:
-
-:::card Engineering Architecture
-- **Language**: Kotlin with Coroutines & StateFlow for buttery-smooth asynchronous reactive UI streams.
-- **Design System**: Material Design 3 with dynamic theme adaptation and dark mode perfection.
-- **Networking**: Retrofit 2 + OkHttp with custom stream extraction interceptors.
-- **Media Pipeline**: Native media player integration with background media session playback.
-- **Local Database**: Room SQLite database for instant offline watch history and saved playlists.
-:::
-
-[tags: Kotlin, Coroutines, StateFlow, MVVM, Room SQLite, Retrofit 2, Material 3]
+![AdZero v4.4 Android Streaming App](/images/projects/adzero-thumb.jpg)
 
 [action: Explore AdZero](/projects/adzero)
 [action: AdZero GitHub](https://github.com/kaif-webwork/AdZero)
@@ -167,18 +136,7 @@ AdZero is built from the ground up following modern Android Clean Architecture a
       /\b(front-end|ui development|styling)\b/i,
     ],
     weight: 10,
-    response: `### Frontend Engineering & User Experience
-
-Mohd Kaif has a deep passion for crafting fluid, accessible, and visually stunning web applications that respond naturally to user interaction:
-
-:::card Frontend Core Capabilities
-- **Modern Frameworks**: React 19, Next.js (App Router), TypeScript, JavaScript (ESNext).
-- **Aesthetic Styling**: Tailwind CSS, Vanilla CSS Modules, micro-interactions, responsive typography.
-- **Animation & Motion**: GSAP (GreenSock), ScrollTrigger, Lenis smooth scrolling.
-- **Performance & Tooling**: Vite, Oxlint, PostCSS, component optimization.
-:::
-
-[tags: React 19, Next.js, TypeScript, Tailwind CSS, GSAP, Lenis, Vite]
+    response: `Mohd Kaif specializes in modern frontend engineering with **React 19, Next.js, and TypeScript**, crafting fluid interfaces with Tailwind CSS, GSAP motion, and Lenis smooth scrolling.
 
 [action: Explore All Projects](/projects)
 [action: View Certificates](/certificates)
@@ -194,18 +152,7 @@ Mohd Kaif has a deep passion for crafting fluid, accessible, and visually stunni
       /\b(back-end|api development|database skills)\b/i,
     ],
     weight: 10,
-    response: `### Backend Systems & Edge Architecture
-
-When it comes to backends, Kaif focuses on high availability, lightning-fast response times, and bulletproof security:
-
-:::card Server & Database Stack
-- **Runtimes & Frameworks**: Node.js, Express.js, PHP, Vercel Serverless Edge Functions.
-- **Edge Caching**: Upstash Redis (powering this portfolio's real-time 0ms visitor telemetry!).
-- **Databases**: MongoDB (Mongoose ODM), MySQL, PostgreSQL.
-- **API Design**: RESTful architectures, WebSockets, JWT token authentication, rate limiting.
-:::
-
-[tags: Node.js, Express, Upstash Redis, MongoDB, MySQL, Edge Functions, REST APIs]
+    response: `For backend systems, Kaif builds high-availability microservices and RESTful APIs with **Node.js, Express, and PHP**, powered by **Upstash Redis** for sub-millisecond edge caching.
 
 [action: View Live Analytics](/analytics)
 [action: Explore All Projects](/projects)
@@ -221,18 +168,7 @@ When it comes to backends, Kaif focuses on high availability, lightning-fast res
       /\b(ai engineering|machine learning|artificial intelligence)\b/i,
     ],
     weight: 11,
-    response: `### Generative AI & Agentic Architectures
-
-Kaif specializes in practical, production-ready AI engineering — turning large language models into reliable, autonomous problem solvers:
-
-:::card AI Specialization
-- **Agent Frameworks**: LangGraph for stateful multi-agent graphs and cyclical workflows.
-- **LLM Integrations**: Google Gemini REST APIs (flash-speed models), OpenAI GPT architectures.
-- **RAG & Tool Calling**: Retrieval-Augmented Generation, vector similarity search, dynamic tool execution.
-- **Portfolio Companion**: Kairo AI (the companion you are chatting with right now!).
-:::
-
-[tags: LangGraph, Google Gemini, GenAI, RAG, Tool Calling, Agentic Workflows]
+    response: `Kaif specializes in practical AI engineering — creating cyclical multi-agent graphs with **LangGraph**, integrating Google Gemini & OpenAI LLMs, and building RAG pipelines with tool calling.
 
 [action: Explore All Projects](/projects)
 [action: View Certificates](/certificates)
@@ -248,18 +184,7 @@ Kaif specializes in practical, production-ready AI engineering — turning large
       /\b(deployment|infrastructure|containerization)\b/i,
     ],
     weight: 9,
-    response: `### DevOps, Cloud & Deployment
-
-Reliability and automation are central to Kaif's software philosophy:
-
-:::card Deployment & CI/CD Pipeline
-- **Containerization**: Docker multi-stage production builds and clean container topologies.
-- **Orchestration**: Kubernetes cluster deployment and service coordination.
-- **Cloud Infrastructure**: AWS (S3, EC2), Vercel Serverless Edge, Upstash Global Redis.
-- **Continuous Integration**: Git workflows, automated testing, GitHub Actions CI/CD pipelines.
-:::
-
-[tags: Docker, Kubernetes, AWS, Vercel, Git, GitHub Actions, Linux]
+    response: `Kaif focuses on automated CI/CD and containerized deployments using **Docker, Kubernetes, AWS, and Vercel Serverless Edge**, with Git automation for rapid, reliable shipping.
 
 [action: Explore All Projects](/projects)
 [action: View Certificates](/certificates)
@@ -275,20 +200,7 @@ Reliability and automation are central to Kaif's software philosophy:
       /\b(programming languages|tech capabilities)\b/i,
     ],
     weight: 10,
-    response: `### Mohd Kaif's Engineering Capabilities & Stack
-
-Mohd Kaif is a Full Stack Developer & AI Engineer who loves building clean, resilient, and high-performance digital products from idea to production:
-
-:::card Core Engineering Specializations
-- **Frontend**: React 19, Next.js (App Router), TypeScript, Tailwind CSS, GSAP animations, Lenis smooth scrolling.
-- **Backend & APIs**: Node.js, Express.js, PHP, RESTful APIs, WebSockets, Vercel Serverless Edge.
-- **Databases & Caching**: Upstash Redis (0ms edge cache), MongoDB (Mongoose), MySQL.
-- **AI & Agentic Systems**: LangGraph cyclical multi-agent workflows, Google Gemini & OpenAI LLMs, RAG.
-- **Mobile Engineering**: Native Android development in Kotlin, Jetpack, Material 3, and Retrofit.
-- **Cloud & DevOps**: Docker, Kubernetes, AWS, Git, GitHub Actions CI/CD.
-:::
-
-[tags: React 19, Next.js, TypeScript, Node.js, Upstash Redis, LangGraph, Kotlin, Docker]
+    response: `Mohd Kaif's core engineering stack spans **React 19, Next.js, TypeScript, Node.js, Upstash Redis, Kotlin (Android), and LangGraph Agentic AI**.
 
 [action: Explore All Projects](/projects)
 [action: View Certificates](/certificates)
@@ -304,27 +216,11 @@ Mohd Kaif is a Full Stack Developer & AI Engineer who loves building clean, resi
       /\b(certified|verified credential)\b/i,
     ],
     weight: 12,
-    response: `### Verified Credentials & Professional Certifications
-
-Mohd Kaif believes in continuous learning and verifiable excellence. Here are his verified credentials:
+    response: `Here are Mohd Kaif's verified professional credentials in Full Stack MERN & Agentic AI from Sheryians and Digital Media & Design from MAAC:
 
 ![Sheryians 2.0 AI Powered Cohort Certificate](/images/certificates/sheryians-2-0-cohort.png)
 
-:::card 1. 2.0 Job Ready AI Powered Cohort — Sheryians Coding School
-- **Issued**: 8 September 2026
-- **Credential ID**: [copy: 108040235499573595336067]
-- **Core Focus**: MERN Stack mastery, Cloud & DevOps (Docker, AWS, Kubernetes, Redis, Git), Generative AI (LangGraph multi-agent workflows), and advanced Data Structures & Algorithms.
-- **Status**: Officially Verified
-:::
-
 ![MAAC APDMD Professional Diploma Certificate](/images/certificates/maac-certificate.jpg)
-
-:::card 2. Advanced Program in Digital Media & Design — MAAC • Aptech Ltd.
-- **Issued**: June 2025 (Grade: B+ Good)
-- **Credential ID**: [copy: 104eC1581252]
-- **Core Focus**: Full web design & development (HTML, CSS, JS, Bootstrap, AngularJS, PHP, MySQL), UI/UX design (Adobe XD, Figma, Photoshop, Illustrator).
-- **Status**: Officially Verified
-:::
 
 [action: View All Certificates](/certificates)
 [action: Verify Sheryians](https://sheryians.com/certificate/108040235499573595336067)
@@ -340,16 +236,7 @@ Mohd Kaif believes in continuous learning and verifiable excellence. Here are hi
       /\b(contact|reach out|connect|baat karni|kaise contact|contact kaise)\b/i,
     ],
     weight: 13,
-    response: `### Get in Touch with Mohd Kaif
-
-Mohd Kaif is always excited to connect, whether you're inquiring about full-time software engineering roles, high-impact freelance projects, or technical consulting:
-
-:::card Direct Communication Channels
-- **Email**: [copy: kaif.webwork@gmail.com]
-- **Typical Response Time**: Within 12–24 hours
-- **Location**: Delhi, India (Timezone: IST, UTC+5:30)
-- **Collaboration Mode**: Open for Remote Worldwide, Hybrid, or On-Site
-:::
+    response: `You can reach Mohd Kaif directly at **kaif.webwork@gmail.com**. He typically responds within 12 to 24 hours.
 
 [action: Send Email](mailto:kaif.webwork@gmail.com)
 [action: Get in Touch](/contact)
@@ -365,15 +252,7 @@ Mohd Kaif is always excited to connect, whether you're inquiring about full-time
       /\b(social links|social media|profile link)\b/i,
     ],
     weight: 11,
-    response: `### Online Profiles & Repositories
-
-Explore Mohd Kaif's open-source projects, commits, and professional updates:
-
-:::card Verified Online Presence
-- **GitHub**: [github.com/kaif-webwork](https://github.com/kaif-webwork) [copy: kaif-webwork]
-- **LinkedIn**: [linkedin.com/in/mohd-kaif-6a453741a](https://www.linkedin.com/in/mohd-kaif-6a453741a)
-- **Flagship Repo**: [AdZero Android Media Client](https://github.com/kaif-webwork/AdZero)
-:::
+    response: `Connect with Mohd Kaif on [GitHub](https://github.com/kaif-webwork) to explore his code and on [LinkedIn](https://www.linkedin.com/in/mohd-kaif-6a453741a) for professional updates.
 
 [action: GitHub Profile](https://github.com/kaif-webwork)
 [action: Connect on LinkedIn](https://www.linkedin.com/in/mohd-kaif-6a453741a)
@@ -389,20 +268,7 @@ Explore Mohd Kaif's open-source projects, commits, and professional updates:
       /\b(project banana|hire karna|hire kaise kare|kaif ko hire)\b/i,
     ],
     weight: 12,
-    response: `### Collaboration & Hiring Opportunities
-
-Mohd Kaif brings strong end-to-end engineering rigor and thoughtful design execution to every project:
-
-:::card Engagement Modes
-- **Full-Time Roles**: Frontend, Backend, or Full Stack (React / Node.js / AI workflows)
-- **High-Impact Contracts**: Modern web applications, API microservices, native Android clients, and AI integrations
-- **Technical Advisory**: Performance optimizations, edge Redis caching, architecture reviews
-:::
-
-:::card How to Start
-Send over a brief description of what you're building, along with your timeline and goals:
-- **Email**: [copy: kaif.webwork@gmail.com]
-:::
+    response: `Mohd Kaif is available for full-time engineering roles, high-impact freelance contracts, and remote collaborations worldwide.
 
 [action: Send Email](mailto:kaif.webwork@gmail.com)
 [action: Get in Touch](/contact)
@@ -417,17 +283,7 @@ Send over a brief description of what you're building, along with your timeline 
       /\b(location|delhi|india|where (is|are)|kahan (rehta|rehte|se ho)|city|timezone|address|country)\b/i,
     ],
     weight: 10,
-    response: `### Location & Geographic Base
-
-Mohd Kaif is based in **Delhi, India**, working with teams and clients worldwide:
-
-:::card Location & Timezone Details
-- **Base City**: Delhi, India
-- **Timezone**: Indian Standard Time (IST, UTC+5:30)
-- **Flexibility**: Highly experienced in asynchronous remote communication with North American, European, and Asian teams
-- **Languages**: Fluent in English & Hindi
-- **Email**: [copy: kaif.webwork@gmail.com]
-:::
+    response: `Mohd Kaif is based in **Delhi, India (IST, UTC+5:30)** and collaborates smoothly with worldwide teams across all timezones.
 
 [action: Get in Touch](/contact)
 [action: Send Email](mailto:kaif.webwork@gmail.com)
@@ -442,14 +298,7 @@ Mohd Kaif is based in **Delhi, India**, working with teams and clients worldwide
       /\b(resume|cv|curriculum vitae|resume download|resume pdf|resume do|resume chahiye)\b/i,
     ],
     weight: 13,
-    response: `### Mohd Kaif's Professional Resume
-
-Mohd Kaif's resume is currently undergoing an active update to include his latest full-stack system architectures and production metrics:
-
-:::card Resume Access
-- **Direct PDF Request**: Feel free to drop a quick email to [copy: kaif.webwork@gmail.com] to receive the most up-to-date PDF copy immediately.
-- **Interactive In-Site Viewer**: A dedicated inline viewer is also being prepared for the resume section.
-:::
+    response: `You can view Mohd Kaif's resume online or request the latest verified PDF directly by email.
 
 [action: View Resume](/resume)
 [action: Request PDF Resume](mailto:kaif.webwork@gmail.com)
@@ -464,17 +313,7 @@ Mohd Kaif's resume is currently undergoing an active update to include his lates
       /\b(analytics|visitors|traffic|views|stats|telemetry)\b/i,
     ],
     weight: 10,
-    response: `### Live Real-Time Portfolio Telemetry
-
-Here is something exciting that Kaif built right into this portfolio! He believes in complete transparency, so he engineered a live telemetry dashboard powered by Upstash Global Redis:
-
-:::card Live Analytics Architecture
-- **Real-Time Traffic**: Tracks global page views and unique visitor sessions with zero tracking cookies.
-- **Edge Performance**: Powered by Vercel Serverless Edge Functions with sub-millisecond edge Redis reads.
-- **Visual Intelligence**: Interactive charts displaying geographic distribution, device types, and browser statistics.
-:::
-
-[tags: Upstash Redis, Edge Functions, Real-time Telemetry, ECharts]
+    response: `This portfolio features a real-time visitor telemetry dashboard powered by Upstash Global Redis and Vercel Edge with zero tracking cookies.
 
 [action: View Live Analytics](/analytics)
 [action: Explore All Projects](/projects)`,
@@ -489,16 +328,7 @@ Here is something exciting that Kaif built right into this portfolio! He believe
       /\b(what gear do you use|development environment)\b/i,
     ],
     weight: 9,
-    response: `### Developer Workspace & Gear
-
-Curious about what Kaif uses to build day in and day out? He believes an intentional, distraction-free environment makes all the difference in writing clean, reliable code:
-
-:::card Daily Development Environment
-- **Code Editor**: VS Code with curated minimal dark themes, custom keybindings, and font ligatures.
-- **Terminal & Shell**: PowerShell / Zsh with custom Git productivity shortcuts.
-- **Design Tools**: Figma and Adobe Creative Cloud for prototyping and visual design.
-- **Browsers**: Brave & Chrome Developer Edition with DevTools profiling.
-:::
+    response: `Kaif's development setup features VS Code with minimal dark themes, PowerShell/Zsh with custom Git shortcuts, and Figma for UI design.
 
 [action: View Developer Setup](/uses)
 [action: Explore All Projects](/projects)`,
@@ -512,14 +342,7 @@ Curious about what Kaif uses to build day in and day out? He believes an intenti
       /\b(blog|blogs|articles|writing|posts)\b/i,
     ],
     weight: 9,
-    response: `### Technical Articles & Engineering Insights
-
-Mohd Kaif loves distilling hard-won engineering lessons into actionable, friendly write-ups for fellow developers:
-
-:::card Featured Engineering Guide
-**How to Plan a Software Project**
-A practical, step-by-step architectural guide on breaking down complex software requirements, picking the right tech stack, avoiding scope creep, and architecting for high scale.
-:::
+    response: `Mohd Kaif writes practical architectural guides for developers, including his featured guide on planning software projects.
 
 [action: Read Planning Guide](/blogs/how-to-plan-a-project)
 [action: View All Blogs](/blogs)`,
@@ -534,15 +357,7 @@ A practical, step-by-step architectural guide on breaking down complex software 
       /\b(tell me about yourself|your name)\b/i,
     ],
     weight: 12,
-    response: `### Hi there! I'm Kairo AI!
-
-I am **Kairo AI** — Mohd Kaif's personal AI companion. My purpose is to make exploring this portfolio effortless, insightful, and delightful!
-
-:::card What Makes Me Tick
-- **Expressive Robot Avatar**: Click or tap my square robot face anytime to watch me cycle through 9 animated emotional states!
-- **Dual AI Engine**: Powered by Google Gemini generative AI (flash-lite models) backed by an instant offline semantic knowledge graph.
-- **My Mission**: Help you learn about Kaif's skills, explore AdZero, review certificates, and connect directly!
-:::
+    response: `I'm **Kairo AI**, Mohd Kaif's personal companion! Tap my avatar to see my moods, or ask me anything about Kaif's work and credentials.
 
 [action: Explore All Projects](/projects)
 [action: View Certificates](/certificates)
@@ -558,27 +373,16 @@ I am **Kairo AI** — Mohd Kaif's personal AI companion. My purpose is to make e
       /\b(photo|picture|dp|profile pic|kaif ki photo)\b/i,
     ],
     weight: 14,
-    response: `### Meet Mohd Kaif — Full Stack Developer & AI Engineer
+    response: `Meet **Mohd Kaif (kaifcoder)** — Full Stack Developer & AI Engineer based in Delhi, India, crafting high-performance web apps, native Android systems, and agentic AI workflows.
 
 ![Mohd Kaif - Full Stack Developer & AI Engineer](/images/profile/pfp-latest.jpg)
-
-It's wonderful to introduce you to **Mohd Kaif** (known online as **kaifcoder**)! He is a Full Stack Developer & AI Engineer based in **Delhi, India**, who thrives on turning ambitious ideas into polished, high-performance production systems.
-
-:::card What Defines Kaif's Work
-- **Product Craftsmanship**: Building software that users genuinely enjoy using, with smooth animations and zero bloat.
-- **Flagship Project**: AdZero (v4.4 Android streaming app with 100% ad-blocking and native background playback).
-- **Modern Tech Core**: React 19, Next.js, Node.js, Upstash Redis, LangGraph, and native Kotlin.
-- **Open for Opportunities**: Currently considering full-time software engineering roles and high-impact freelance collaborations worldwide.
-:::
-
-[tags: Full Stack, React 19, TypeScript, Node.js, LangGraph, Kotlin, Upstash Redis]
 
 [action: Explore All Projects](/projects)
 [action: View Certificates](/certificates)
 [action: Get in Touch](/contact)`,
   },
 
-  // 19. Greetings & Polite Salutations (English & Hinglish)
+  // 19. Greetings & Polite Salutations
   {
     id: 'greetings_all',
     keywords: ['hi', 'hello', 'hey', 'namaste', 'kaise ho', 'kya haal', 'sup', 'yo', 'bhai', 'bro', 'suno', 'helo', 'good morning', 'good evening'],
@@ -588,23 +392,11 @@ It's wonderful to introduce you to **Mohd Kaif** (known online as **kaifcoder**)
       /\b(good (morning|afternoon|evening|day))\b/i,
     ],
     weight: 8,
-    response: `Hello and welcome! It's wonderful to have you visiting Mohd Kaif's developer portfolio.
-
-I'm **Kairo AI — Your Personal AI Companion**.
-
-:::card What Would You Like to Explore Today?
-- **AdZero (v4.4)**: Kaif's 100% ad-free Android streaming client
-- **Tech Stack**: React 19, Node.js, Upstash Redis, LangGraph, Kotlin
-- **Certifications**: Verified Sheryians AI Cohort & MAAC diplomas
-- **Live Analytics**: Real-time visitor metrics powered by Upstash Redis
-- **Hire or Connect**: Direct email [copy: kaif.webwork@gmail.com]
-:::
-
-Feel free to ask me any question about Kaif's projects, experience, or skills!
+    response: `Hey there! Welcome to Mohd Kaif's developer portfolio. How can I help you explore his work today?
 
 [action: Explore All Projects](/projects)
 [action: View Certificates](/certificates)
-[action: View Resume](/resume)`,
+[action: Get in Touch](/contact)`,
   },
 
   // 20. Gratitude, Compliments & Appreciation
@@ -615,9 +407,7 @@ Feel free to ask me any question about Kaif's projects, experience, or skills!
       /\b(thank|thanks|shukriya|dhanyawad|awesome|cool|great|nice|perfect|good|badhiya|shabash|superb)\b/i,
     ],
     weight: 8,
-    response: `You're very welcome! It's an absolute pleasure helping you explore Kaif's work.
-
-If there's anything else you'd like to dive into — whether it's software architecture, code samples, or connecting with Kaif directly — I'm right here!
+    response: `You're very welcome! Let me know if you'd like to check out any code samples, projects, or connect with Kaif directly.
 
 [action: Explore All Projects](/projects)
 [action: View Certificates](/certificates)
@@ -715,22 +505,12 @@ function getBuiltinResponse(userQuery: string): string {
     if (s) return s.response;
   }
 
-  // Comprehensive Contextual Fallback with Human Touch
-  return `### Kairo AI — Your Personal AI Companion
+  // Concise Contextual Fallback with Human Touch
+  return `Hi there! I'm **Kairo AI**. You can ask me anything about Mohd Kaif's projects, technical stack, or verified credentials.
 
-I'm here to help you learn all about **Mohd Kaif** (kaifcoder) — his engineering stack, production projects, and verified credentials!
-
-:::card Popular Topics You Can Ask Me:
-- **AdZero**: Flagship Android streaming app with 100% ad-blocking
-- **Tech Stack**: React 19, TypeScript, Node.js, Upstash Redis, LangGraph, Kotlin
-- **Certifications**: Sheryians AI Cohort & MAAC verified credentials
-- **Resume & Bio**: Experience and background details
-- **Get in Touch**: Direct email [copy: kaif.webwork@gmail.com]
-:::
-
-[action: Explore All Projects](/projects)
 [action: View Certificates](/certificates)
-[action: View Resume](/resume)`;
+[action: Explore All Projects](/projects)
+[action: Get in Touch](/contact)`;
 }
 
 // ---------------------------------------------------------------------------

@@ -203,7 +203,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   const systemInstruction =
     typeof body.systemInstruction === 'string'
-      ? body.systemInstruction.replace(/\0/g, '').slice(0, 4000)
+      ? body.systemInstruction.replace(/\0/g, '').slice(0, 10000)
       : undefined;
 
   const geminiPayload = {
@@ -212,10 +212,10 @@ export default async function handler(req: Request): Promise<Response> {
       : undefined,
     contents: sanitizedContents,
     generationConfig: {
-      temperature: 0.65,
+      temperature: 0.6,
       topK: 40,
       topP: 0.95,
-      maxOutputTokens: 380,
+      maxOutputTokens: 600,
     },
   };
 
