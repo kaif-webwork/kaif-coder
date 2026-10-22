@@ -269,7 +269,7 @@ function localAnalyticsPlugin(): Plugin {
           try {
             const urlObj = new URL(req.url, 'http://localhost:3000');
             const rawPeriod = urlObj.searchParams.get('period');
-            const period: '24h' | '7d' | '30d' = rawPeriod === '24h' || rawPeriod === '30d' ? rawPeriod : '7d';
+            const period: '24h' | '7d' | '30d' = rawPeriod === '7d' || rawPeriod === '30d' ? rawPeriod : '24h';
             const now = new Date();
 
             const daily = devStore.daily || {};

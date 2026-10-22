@@ -31,6 +31,8 @@ function getBlobCredentials(): { token: string; storeId: string } | null {
   }
 }
 
+let isBlobDisabled = false;
+
 export async function getLiveStore(): Promise<LiveAnalyticsStore> {
   const now = Date.now();
   if (cachedStore && now - lastCacheTime < CACHE_TTL_MS) {
@@ -38,7 +40,7 @@ export async function getLiveStore(): Promise<LiveAnalyticsStore> {
   }
 
   const creds = getBlobCredentials();
-  if (creds) {
+  if (creds && !isBlobDisabled) {
     try {
       const getUrl = `https://${creds.storeId}.private.blob.vercel-storage.com/${BLOB_PATH}?cache=0`;
       const res = await fetch(getUrl, {
@@ -56,6 +58,8 @@ export async function getLiveStore(): Promise<LiveAnalyticsStore> {
             return parsed;
           }
         }
+      } else if (res.status === 403) {
+        isBlobDisabled = true;
       }
     } catch {
       // Fallback if network hiccup
@@ -116,10 +120,10 @@ export async function recordRealVisit(
   lastCacheTime = Date.now();
 
   const creds = getBlobCredentials();
-  if (creds) {
+  if (creds && !isBlobDisabled) {
     try {
       const putUrl = `https://vercel.com/api/blob?pathname=${encodeURIComponent(BLOB_PATH)}`;
-      await fetch(putUrl, {
+      const putRes = await fetch(putUrl, {
         method: 'PUT',
         headers: {
           authorization: `Bearer ${creds.token}`,
@@ -131,6 +135,9 @@ export async function recordRealVisit(
         },
         body: JSON.stringify(store),
       });
+      if (putRes.status === 403) {
+        isBlobDisabled = true;
+      }
     } catch (err) {
       console.warn('Failed to sync analytics to Vercel Blob:', err);
     }

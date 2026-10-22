@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { AnalyticsPeriod, AnalyticsData } from '../data/analytics';
-import { getRealAnalyticsForPeriod } from '../utils/realAnalyticsTracker';
+import { getHistoricalBaselineForPeriod, purgePoisonedStorage } from '../utils/realAnalyticsTracker';
 
 interface UseAnalyticsResult {
   data: AnalyticsData;
@@ -9,27 +9,36 @@ interface UseAnalyticsResult {
   refetch: () => void;
 }
 
-const CACHE_STORAGE_KEY = 'kaif_analytics_server_cache_v7_';
+const CACHE_STORAGE_KEY = 'kaif_analytics_server_v12_';
 
-// Purge all obsolete, poisoned or zeroed caches from previous sessions
-if (typeof window !== 'undefined' && window.sessionStorage) {
-  try {
-    const keysToRemove = [
-      'kaif_analytics_server_cache_v6_24h',
-      'kaif_analytics_server_cache_v6_7d',
-      'kaif_analytics_server_cache_v6_30d',
-      'kaif_analytics_server_cache_v5_24h',
-      'kaif_analytics_server_cache_v5_7d',
-      'kaif_analytics_server_cache_v5_30d',
-      'kaif_analytics_server_cache_24h',
-      'kaif_analytics_server_cache_7d',
-      'kaif_analytics_server_cache_30d',
-    ];
-    keysToRemove.forEach((k) => window.sessionStorage.removeItem(k));
-  } catch {
-    // ignore
+const POISONED_SESSION_KEYS = [
+  'kaif_analytics_server_cache_v7_24h',
+  'kaif_analytics_server_cache_v7_7d',
+  'kaif_analytics_server_cache_v7_30d',
+  'kaif_analytics_server_cache_v6_24h',
+  'kaif_analytics_server_cache_v6_7d',
+  'kaif_analytics_server_cache_v6_30d',
+  'kaif_analytics_server_cache_v5_24h',
+  'kaif_analytics_server_cache_v5_7d',
+  'kaif_analytics_server_cache_v5_30d',
+  'kaif_analytics_server_cache_24h',
+  'kaif_analytics_server_cache_7d',
+  'kaif_analytics_server_cache_30d',
+];
+
+function purgeAllStorage() {
+  purgePoisonedStorage();
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    try {
+      POISONED_SESSION_KEYS.forEach((k) => window.sessionStorage.removeItem(k));
+    } catch {
+      // Ignore storage restrictions
+    }
   }
 }
+
+// Immediate execution on import
+purgeAllStorage();
 
 function getCachedData(period: AnalyticsPeriod): AnalyticsData | null {
   try {
@@ -69,24 +78,16 @@ function setCachedData(period: AnalyticsPeriod, data: AnalyticsData) {
 }
 
 /**
- * Returns the best immediate analytics data: fresh cached server data or local real analytics.
- * Guarantees 0ms instantaneous loading and zero render lag across all 3 periods.
+ * Returns immediate analytics data for 0ms initial render:
+ * 1. Fresh server data cached from this session if present.
+ * 2. Clean baseline mathematical model (identical on all devices, NEVER poisoned by local storage).
  */
 function getBestImmediateData(period: AnalyticsPeriod): AnalyticsData {
   const cached = getCachedData(period);
-  const local = getRealAnalyticsForPeriod(period);
-
   if (cached && Array.isArray(cached.series) && cached.series.length > 0) {
-    return {
-      ...cached,
-      visitors: Math.max(cached.visitors, local.visitors),
-      pageviews: Math.max(cached.pageviews, local.pageviews),
-      totalLifetimeVisitors: Math.max(cached.totalLifetimeVisitors ?? 0, local.totalLifetimeVisitors ?? 0),
-      totalLifetimePageviews: Math.max(cached.totalLifetimePageviews ?? 0, local.totalLifetimePageviews ?? 0),
-    };
+    return cached;
   }
-
-  return local;
+  return getHistoricalBaselineForPeriod(period);
 }
 
 const ALL_PERIODS: AnalyticsPeriod[] = ['24h', '7d', '30d'];
@@ -120,53 +121,26 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
     };
   }, [refetch]);
 
-  // 2. Handle local pageview events (navigation within SPA)
+  // 2. Refetch when local navigation triggers an update
   useEffect(() => {
     const handleUpdate = () => {
-      // Instantly recompute all 3 periods locally without any delay
-      const fresh24h = getRealAnalyticsForPeriod('24h');
-      const fresh7d = getRealAnalyticsForPeriod('7d');
-      const fresh30d = getRealAnalyticsForPeriod('30d');
-
-      setDataMap((prev) => {
-        const nextMap: Record<AnalyticsPeriod, AnalyticsData> = {
-          '24h': {
-            ...fresh24h,
-            pageviews: Math.max(fresh24h.pageviews, prev['24h']?.pageviews ?? 0),
-            visitors: Math.max(fresh24h.visitors, prev['24h']?.visitors ?? 0),
-          },
-          '7d': {
-            ...fresh7d,
-            pageviews: Math.max(fresh7d.pageviews, prev['7d']?.pageviews ?? 0),
-            visitors: Math.max(fresh7d.visitors, prev['7d']?.visitors ?? 0),
-          },
-          '30d': {
-            ...fresh30d,
-            pageviews: Math.max(fresh30d.pageviews, prev['30d']?.pageviews ?? 0),
-            visitors: Math.max(fresh30d.visitors, prev['30d']?.visitors ?? 0),
-          },
-        };
-        setCachedData('24h', nextMap['24h']);
-        setCachedData('7d', nextMap['7d']);
-        setCachedData('30d', nextMap['30d']);
-        return nextMap;
-      });
+      refetch();
     };
-
     window.addEventListener('kaif_analytics_updated', handleUpdate);
     return () => {
       window.removeEventListener('kaif_analytics_updated', handleUpdate);
     };
-  }, []);
+  }, [refetch]);
 
-  // 3. Parallel synchronization of ALL 3 periods so 24H, 7D, and 30D are always distinct and fresh
+  // 3. Parallel synchronization of ALL 3 periods directly from the authoritative server API
   useEffect(() => {
     let ignore = false;
+    purgeAllStorage();
 
     async function syncAllPeriods() {
       setError(null);
 
-      // Fetch all 3 periods in parallel (priority on active period)
+      // Fetch all 3 periods in parallel (active period + remaining)
       await Promise.all(
         ALL_PERIODS.map(async (p) => {
           try {
@@ -183,42 +157,19 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
               typeof serverData === 'object' &&
               Array.isArray(serverData.series) &&
               serverData.series.length > 0 &&
+              typeof serverData.visitors === 'number' &&
               serverData.visitors > 0
             ) {
-              setDataMap((prev) => {
-                const current = prev[p] ?? getRealAnalyticsForPeriod(p);
-
-                // Point-by-point merge so authentic counts are preserved
-                const mergedSeries = serverData.series.map((serverPt, i) => {
-                  const localPt = current.series?.[i];
-                  return {
-                    timestamp: serverPt.timestamp,
-                    pageviews: Math.max(serverPt.pageviews, localPt?.pageviews ?? 0),
-                    visitors: Math.max(serverPt.visitors, localPt?.visitors ?? 0),
-                  };
-                });
-
-                const merged: AnalyticsData = {
-                  ...serverData,
-                  series: mergedSeries,
-                  visitors: Math.max(serverData.visitors, current.visitors),
-                  pageviews: Math.max(serverData.pageviews, current.pageviews),
-                  totalLifetimeVisitors: Math.max(
-                    serverData.totalLifetimeVisitors ?? 0,
-                    current.totalLifetimeVisitors ?? 0
-                  ),
-                  totalLifetimePageviews: Math.max(
-                    serverData.totalLifetimePageviews ?? 0,
-                    current.totalLifetimePageviews ?? 0
-                  ),
-                };
-
-                setCachedData(p, merged);
-                return { ...prev, [p]: merged };
-              });
+              // Authoritative assignment: server is the SOLE source of truth (SSOT)
+              // No local Math.max inflation, ensuring 100% device synchronization
+              setDataMap((prev) => ({
+                ...prev,
+                [p]: serverData,
+              }));
+              setCachedData(p, serverData);
             }
           } catch {
-            // Silently fall back to rock-solid local state
+            // Silently retain current clean state
           }
         })
       );
@@ -226,10 +177,10 @@ export function useAnalytics(period: AnalyticsPeriod): UseAnalyticsResult {
 
     void syncAllPeriods();
 
-    // Background poll every 10 seconds to keep counts live across all devices
+    // Background poll every 8 seconds to keep counts live and 100% in sync across all devices
     const interval = setInterval(() => {
       void syncAllPeriods();
-    }, 10000);
+    }, 8000);
 
     return () => {
       ignore = true;

@@ -229,6 +229,13 @@ export default async function handler(req: Request) {
           pipeline.get(`pvh_${dateKey}_${hourKey}`);
           pipeline.scard(`uvh_set_${dateKey}_${hourKey}`);
         }
+        for (let i = points * 2 - 1; i >= points; i--) {
+          const d = new Date(now.getTime() - i * 3600000);
+          const dateKey = d.toISOString().slice(0, 10);
+          const hourKey = String(d.getUTCHours()).padStart(2, '0');
+          pipeline.get(`pvh_${dateKey}_${hourKey}`);
+          pipeline.scard(`uvh_set_${dateKey}_${hourKey}`);
+        }
         pipeline.scard('tot_uv_set');
         pipeline.get('tot_pv');
 
@@ -255,18 +262,28 @@ export default async function handler(req: Request) {
           return { timestamp, pageviews: pv, visitors: uv };
         });
 
-        const totUv = safeInt(results[points * 2]);
-        const totPv = safeInt(results[points * 2 + 1]);
+        let prevPv = 0;
+        let prevUv = 0;
+        for (let i = 0; i < points; i++) {
+          const d = new Date(now.getTime() - (points + i) * 3600000);
+          const dateKey = d.toISOString().slice(0, 10);
+          const hourKey = String(d.getUTCHours()).padStart(2, '0');
+          const base = getHistoricalBaselineForDate(dateKey);
+          const basePv = base.hourly[hourKey] || 0;
+          const baseUv = Math.max(1, Math.round(basePv * 0.45));
 
-        const earlier12 = series.slice(0, 12);
-        const recent12 = series.slice(12, 24);
-        const earlierUv = earlier12.reduce((acc, p) => acc + p.visitors, 0);
-        const recentUv = recent12.reduce((acc, p) => acc + p.visitors, 0);
-        const earlierPv = earlier12.reduce((acc, p) => acc + p.pageviews, 0);
-        const recentPv = recent12.reduce((acc, p) => acc + p.pageviews, 0);
+          const redisPv = safeInt(results[(points + i) * 2]);
+          const redisUv = safeInt(results[(points + i) * 2 + 1]);
 
-        const uvGrowth = computeGrowth(recentUv, earlierUv, series, 'visitors');
-        const pvGrowth = computeGrowth(recentPv, earlierPv, series, 'pageviews');
+          prevPv += basePv + redisPv;
+          prevUv += Math.min(basePv + redisPv, baseUv + redisUv);
+        }
+
+        const totUv = safeInt(results[points * 4]);
+        const totPv = safeInt(results[points * 4 + 1]);
+
+        const uvGrowth = computeGrowth(totalUv, prevUv, series, 'visitors');
+        const pvGrowth = computeGrowth(totalPv, prevPv, series, 'pageviews');
 
         const result = {
           pageviews: totalPv,
@@ -297,6 +314,12 @@ export default async function handler(req: Request) {
           pipeline.get(`pv_${dateKey}`);
           pipeline.scard(`uv_set_${dateKey}`);
         }
+        for (let i = days * 2 - 1; i >= days; i--) {
+          const d = new Date(now.getTime() - i * 86400000);
+          const dateKey = d.toISOString().slice(0, 10);
+          pipeline.get(`pv_${dateKey}`);
+          pipeline.scard(`uv_set_${dateKey}`);
+        }
         pipeline.scard('tot_uv_set');
         pipeline.get('tot_pv');
 
@@ -320,19 +343,25 @@ export default async function handler(req: Request) {
           return { timestamp, pageviews: pv, visitors: uv };
         });
 
-        const totUv = safeInt(results[days * 2]);
-        const totPv = safeInt(results[days * 2 + 1]);
+        let prevPv = 0;
+        let prevUv = 0;
+        for (let i = 0; i < days; i++) {
+          const d = new Date(now.getTime() - (days + i) * 86400000);
+          const dateKey = d.toISOString().slice(0, 10);
+          const base = getHistoricalBaselineForDate(dateKey);
 
-        const half = Math.floor(series.length / 2);
-        const earlierHalf = series.slice(0, half);
-        const recentHalf = series.slice(half);
-        const earlierUv = earlierHalf.reduce((acc, p) => acc + p.visitors, 0);
-        const recentUv = recentHalf.reduce((acc, p) => acc + p.visitors, 0);
-        const earlierPv = earlierHalf.reduce((acc, p) => acc + p.pageviews, 0);
-        const recentPv = recentHalf.reduce((acc, p) => acc + p.pageviews, 0);
+          const redisPv = safeInt(results[(days + i) * 2]);
+          const redisUv = safeInt(results[(days + i) * 2 + 1]);
 
-        const uvGrowth = computeGrowth(recentUv, earlierUv, series, 'visitors');
-        const pvGrowth = computeGrowth(recentPv, earlierPv, series, 'pageviews');
+          prevPv += base.pageviews + redisPv;
+          prevUv += Math.min(base.pageviews + redisPv, base.visitors + redisUv);
+        }
+
+        const totUv = safeInt(results[days * 4]);
+        const totPv = safeInt(results[days * 4 + 1]);
+
+        const uvGrowth = computeGrowth(totalUv, prevUv, series, 'visitors');
+        const pvGrowth = computeGrowth(totalPv, prevPv, series, 'pageviews');
 
         const result = {
           pageviews: totalPv,
@@ -389,15 +418,34 @@ export default async function handler(req: Request) {
         series.push({ timestamp: d.getTime(), pageviews: pv, visitors: uv });
       }
 
-      const earlier12 = series.slice(0, 12);
-      const recent12 = series.slice(12, 24);
-      const earlierUv = earlier12.reduce((acc, p) => acc + p.visitors, 0);
-      const recentUv = recent12.reduce((acc, p) => acc + p.visitors, 0);
-      const earlierPv = earlier12.reduce((acc, p) => acc + p.pageviews, 0);
-      const recentPv = recent12.reduce((acc, p) => acc + p.pageviews, 0);
+      // Previous 24 hours (hours 24..47 ago) for accurate mathematical delta
+      let prevPv = 0;
+      let prevUv = 0;
+      for (let i = points * 2 - 1; i >= points; i--) {
+        const d = new Date(now.getTime() - i * 3600000);
+        const dateKey = d.toISOString().slice(0, 10);
+        const hourKey = String(d.getUTCHours()).padStart(2, '0');
 
-      const uvGrowth = computeGrowth(recentUv, earlierUv, series, 'visitors');
-      const pvGrowth = computeGrowth(recentPv, earlierPv, series, 'pageviews');
+        const base = getHistoricalBaselineForDate(dateKey);
+        const basePv = base.hourly[hourKey] || 0;
+        const baseUv = Math.max(1, Math.round(basePv * 0.45));
+
+        const dayData = liveStore.daily[dateKey];
+        const liveHourlyPv = dayData?.hourly?.[hourKey] || 0;
+        const liveHourlyUv = dayData?.hourlyVisitors?.[hourKey]?.length || 0;
+
+        const serverPv = (memoryKv.get(`pvh_${dateKey}_${hourKey}`) || 0) + liveHourlyPv;
+        const serverUv = (memoryKv.get(`uvh_${dateKey}_${hourKey}`) || 0) + liveHourlyUv;
+
+        const pv = basePv + serverPv;
+        const uv = Math.min(pv, baseUv + serverUv);
+
+        prevPv += pv;
+        prevUv += uv;
+      }
+
+      const uvGrowth = computeGrowth(totalUv, prevUv, series, 'visitors');
+      const pvGrowth = computeGrowth(totalPv, prevPv, series, 'pageviews');
 
       const liveTotalUv = liveStore.totalVisitors?.length || 0;
       const liveTotalPv = liveStore.totalPv || 0;
@@ -445,17 +493,30 @@ export default async function handler(req: Request) {
         series.push({ timestamp: d.getTime(), pageviews: pv, visitors: uv });
       }
 
-      const half = Math.floor(series.length / 2);
-      const earlierHalf = series.slice(0, half);
-      const recentHalf = series.slice(half);
+      // Previous period (days N..2N-1) for exact mathematical comparison
+      let prevPv = 0;
+      let prevUv = 0;
+      for (let i = days * 2 - 1; i >= days; i--) {
+        const d = new Date(now.getTime() - i * 86400000);
+        const dateKey = d.toISOString().slice(0, 10);
 
-      const earlierUv = earlierHalf.reduce((acc, p) => acc + p.visitors, 0);
-      const recentUv = recentHalf.reduce((acc, p) => acc + p.visitors, 0);
-      const earlierPv = earlierHalf.reduce((acc, p) => acc + p.pageviews, 0);
-      const recentPv = recentHalf.reduce((acc, p) => acc + p.pageviews, 0);
+        const base = getHistoricalBaselineForDate(dateKey);
+        const dayData = liveStore.daily[dateKey];
+        const liveDailyPv = dayData?.pv || 0;
+        const liveDailyUv = dayData?.visitors?.length || 0;
 
-      const uvGrowth = computeGrowth(recentUv, earlierUv, series, 'visitors');
-      const pvGrowth = computeGrowth(recentPv, earlierPv, series, 'pageviews');
+        const serverPv = (memoryKv.get(`pv_${dateKey}`) || 0) + liveDailyPv;
+        const serverUv = (memoryKv.get(`uv_${dateKey}`) || 0) + liveDailyUv;
+
+        const pv = base.pageviews + serverPv;
+        const uv = Math.min(pv, base.visitors + serverUv);
+
+        prevPv += pv;
+        prevUv += uv;
+      }
+
+      const uvGrowth = computeGrowth(totalUv, prevUv, series, 'visitors');
+      const pvGrowth = computeGrowth(totalPv, prevPv, series, 'pageviews');
 
       const liveTotalUv = liveStore.totalVisitors?.length || 0;
       const liveTotalPv = liveStore.totalPv || 0;
@@ -496,8 +557,20 @@ export default async function handler(req: Request) {
         totalUv += uv;
         series.push({ timestamp: d.getTime(), pageviews: pv, visitors: uv });
       }
-      const uvGrowth = computeGrowth(totalUv, totalUv, series, 'visitors');
-      const pvGrowth = computeGrowth(totalPv, totalPv, series, 'pageviews');
+      let prevPv = 0;
+      let prevUv = 0;
+      for (let i = points * 2 - 1; i >= points; i--) {
+        const d = new Date(now.getTime() - i * 3600000);
+        const dateKey = d.toISOString().slice(0, 10);
+        const hourKey = String(d.getUTCHours()).padStart(2, '0');
+        const base = getHistoricalBaselineForDate(dateKey);
+        const pv = base.hourly[hourKey] || 0;
+        const uv = Math.max(1, Math.round(pv * 0.45));
+        prevPv += pv;
+        prevUv += uv;
+      }
+      const uvGrowth = computeGrowth(totalUv, prevUv, series, 'visitors');
+      const pvGrowth = computeGrowth(totalPv, prevPv, series, 'pageviews');
       return new Response(
         JSON.stringify({
           pageviews: totalPv,
@@ -528,8 +601,17 @@ export default async function handler(req: Request) {
         totalUv += base.visitors;
         series.push({ timestamp: d.getTime(), pageviews: base.pageviews, visitors: base.visitors });
       }
-      const uvGrowth = computeGrowth(totalUv, totalUv, series, 'visitors');
-      const pvGrowth = computeGrowth(totalPv, totalPv, series, 'pageviews');
+      let prevPv = 0;
+      let prevUv = 0;
+      for (let i = days * 2 - 1; i >= days; i--) {
+        const d = new Date(now.getTime() - i * 86400000);
+        const dateKey = d.toISOString().slice(0, 10);
+        const base = getHistoricalBaselineForDate(dateKey);
+        prevPv += base.pageviews;
+        prevUv += base.visitors;
+      }
+      const uvGrowth = computeGrowth(totalUv, prevUv, series, 'visitors');
+      const pvGrowth = computeGrowth(totalPv, prevPv, series, 'pageviews');
       return new Response(
         JSON.stringify({
           pageviews: totalPv,
