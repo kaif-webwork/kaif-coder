@@ -7,14 +7,17 @@ export const config = {
 
 declare const process: { env: Record<string, string | undefined> };
 
+const FALLBACK_REDIS_URL = 'https://chief-civet-117952.upstash.io';
+const FALLBACK_REDIS_TOKEN = 'gQAAAAAAAczAAQIgcDE1OTQ2MmU1ZjFhYjA0OTNhOTFlZmQwOTZjMzhmZjc1NQ';
+
 let redisClient: Redis | null = null;
 
 function getRedis(): Redis | null {
   if (redisClient) return redisClient;
   try {
     const env = typeof process !== 'undefined' ? process.env : undefined;
-    const url = env?.UPSTASH_REDIS_REST_URL || env?.KV_REST_API_URL;
-    const token = env?.UPSTASH_REDIS_REST_TOKEN || env?.KV_REST_API_TOKEN;
+    const url = env?.UPSTASH_REDIS_REST_URL || env?.KV_REST_API_URL || FALLBACK_REDIS_URL;
+    const token = env?.UPSTASH_REDIS_REST_TOKEN || env?.KV_REST_API_TOKEN || FALLBACK_REDIS_TOKEN;
 
     if (url && token) {
       redisClient = new Redis({ url, token });
@@ -188,7 +191,7 @@ export default async function handler(req: Request) {
     'access-control-allow-headers': 'Content-Type',
     'x-content-type-options': 'nosniff',
     'x-frame-options': 'DENY',
-    'cache-control': 'public, s-maxage=3, stale-while-revalidate=5',
+    'cache-control': 'no-cache, no-store, must-revalidate',
   };
 
   if (req.method === 'OPTIONS') {
@@ -295,12 +298,12 @@ export default async function handler(req: Request) {
           growthPageviewsStatus: pvGrowth.status,
           isVisitorsUp: uvGrowth.isUp,
           isPageviewsUp: pvGrowth.isUp,
-          totalLifetimeVisitors: Math.max(492, totUv, totalUv),
-          totalLifetimePageviews: Math.max(1485, totPv, totalPv),
+          totalLifetimeVisitors: Math.max(492, 492 + totUv, totalUv),
+          totalLifetimePageviews: Math.max(1485, 1485 + totPv, totalPv),
           engine: 'redis',
         };
 
-        analyticsCache.set(period, { data: result, expiresAt: now.getTime() + 15000 });
+        analyticsCache.set(period, { data: result, expiresAt: now.getTime() + 1000 });
         return new Response(JSON.stringify(result), { headers: CORS_HEADERS });
       } else {
         const days = period === '30d' ? 30 : 7;
@@ -373,12 +376,12 @@ export default async function handler(req: Request) {
           growthPageviewsStatus: pvGrowth.status,
           isVisitorsUp: uvGrowth.isUp,
           isPageviewsUp: pvGrowth.isUp,
-          totalLifetimeVisitors: Math.max(492, totUv, totalUv),
-          totalLifetimePageviews: Math.max(1485, totPv, totalPv),
+          totalLifetimeVisitors: Math.max(492, 492 + totUv, totalUv),
+          totalLifetimePageviews: Math.max(1485, 1485 + totPv, totalPv),
           engine: 'redis',
         };
 
-        analyticsCache.set(period, { data: result, expiresAt: now.getTime() + 3000 });
+        analyticsCache.set(period, { data: result, expiresAt: now.getTime() + 1000 });
         return new Response(JSON.stringify(result), { headers: CORS_HEADERS });
       }
     }

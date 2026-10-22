@@ -31,7 +31,7 @@ function getBlobCredentials(): { token: string; storeId: string } | null {
   }
 }
 
-let isBlobDisabled = false;
+let isBlobDisabled = true;
 
 export async function getLiveStore(): Promise<LiveAnalyticsStore> {
   const now = Date.now();

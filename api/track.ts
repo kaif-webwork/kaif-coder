@@ -7,14 +7,17 @@ export const config = {
 
 declare const process: { env: Record<string, string | undefined> };
 
+const FALLBACK_REDIS_URL = 'https://chief-civet-117952.upstash.io';
+const FALLBACK_REDIS_TOKEN = 'gQAAAAAAAczAAQIgcDE1OTQ2MmU1ZjFhYjA0OTNhOTFlZmQwOTZjMzhmZjc1NQ';
+
 let redisClient: Redis | null = null;
 
 function getRedis(): Redis | null {
   if (redisClient) return redisClient;
   try {
     const env = typeof process !== 'undefined' ? process.env : undefined;
-    const url = env?.UPSTASH_REDIS_REST_URL || env?.KV_REST_API_URL;
-    const token = env?.UPSTASH_REDIS_REST_TOKEN || env?.KV_REST_API_TOKEN;
+    const url = env?.UPSTASH_REDIS_REST_URL || env?.KV_REST_API_URL || FALLBACK_REDIS_URL;
+    const token = env?.UPSTASH_REDIS_REST_TOKEN || env?.KV_REST_API_TOKEN || FALLBACK_REDIS_TOKEN;
 
     if (url && token) {
       redisClient = new Redis({ url, token });
@@ -132,7 +135,14 @@ export default async function handler(req: Request) {
     try {
       body = (await req.json()) as typeof body;
     } catch {
-      // payload fallback
+      try {
+        const text = await req.text();
+        if (text) {
+          body = JSON.parse(text);
+        }
+      } catch {
+        // payload fallback
+      }
     }
 
     const now = new Date();
@@ -141,8 +151,10 @@ export default async function handler(req: Request) {
 
     const rawVisitorId = typeof body.visitorId === 'string' ? body.visitorId : '';
     const visitorId = rawVisitorId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64) || 'v_anon';
+    const rawPath = typeof body.path === 'string' ? body.path : '/';
+    const cleanPath = rawPath.slice(0, 100);
 
-    // 1. Persistent cloud storage across all global devices
+    // 1. Persistent cloud storage fallback across all global devices
     try {
       await recordRealVisit(today, hour, visitorId);
     } catch {
@@ -152,15 +164,24 @@ export default async function handler(req: Request) {
     const redis = getRedis();
 
     if (redis) {
+      // Deduplicate pageview: only count if this device hasn't visited this path today
+      const pvKey = `${visitorId}_${cleanPath}`;
+      const isNewPv = await redis.sadd(`pv_keys_${today}`, pvKey);
+
       const pipeline = redis.pipeline();
-      // Track pageviews & visitors atomically in Redis
-      pipeline.incr(`pv_${today}`);
-      pipeline.incr(`pvh_${today}_${hour}`);
-      pipeline.incr('tot_pv');
-      // Daily unique visitor set
+
+      // If first time visiting this route today, increment pageviews
+      if (isNewPv === 1) {
+        pipeline.incr(`pv_${today}`);
+        pipeline.incr(`pvh_${today}_${hour}`);
+        pipeline.incr('tot_pv');
+      }
+
+      // Unique visitor tracking (Redis sets automatically deduplicate by visitorId)
       pipeline.sadd(`uv_set_${today}`, visitorId);
       pipeline.sadd(`uvh_set_${today}_${hour}`, visitorId);
       pipeline.sadd('tot_uv_set', visitorId);
+
       await pipeline.exec().catch(() => {});
     }
 

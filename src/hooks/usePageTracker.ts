@@ -52,18 +52,25 @@ export function usePageTracker() {
         timestamp: now,
       });
 
-      if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
-        const payload = new Blob([payloadString], {
-          type: 'application/json',
-        });
-        navigator.sendBeacon('/api/track', payload);
-      } else if (typeof fetch !== 'undefined') {
+      if (typeof fetch !== 'undefined') {
         void fetch('/api/track', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: payloadString,
           keepalive: true,
-        }).catch(() => {});
+        }).then(() => {
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('kaif_analytics_updated'));
+          }
+        }).catch(() => {
+          if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+            const payload = new Blob([payloadString], { type: 'application/json' });
+            navigator.sendBeacon('/api/track', payload);
+          }
+        });
+      } else if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+        const payload = new Blob([payloadString], { type: 'application/json' });
+        navigator.sendBeacon('/api/track', payload);
       }
     } catch {
       // Fail silently for tracker
