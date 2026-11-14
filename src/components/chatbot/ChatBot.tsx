@@ -199,7 +199,7 @@ export default function ChatBot() {
         const fallbackMsg: ChatMessage = {
           id: `ai-err-${Date.now()}`,
           sender: 'assistant',
-          text: `Oops! Something went wrong answering that question. Please try asking again or reach out directly to Mohd Kaif at [kaif.webwork@gmail.com](mailto:kaif.webwork@gmail.com).`,
+          text: `Oops! Something went wrong answering that question. Please try asking again or reach out directly to Mohd Kaif at [hello@kaifcoder.in](mailto:hello@kaifcoder.in).`,
           timestamp: Date.now(),
         };
         setMessages((prev) => [...prev, fallbackMsg]);

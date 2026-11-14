@@ -236,9 +236,9 @@ const KNOWLEDGE_BASE: KnowledgeModule[] = [
       /\b(contact|reach out|connect|baat karni|kaise contact|contact kaise)\b/i,
     ],
     weight: 13,
-    response: `You can reach Mohd Kaif directly at **kaif.webwork@gmail.com**. He typically responds within 12 to 24 hours.
+    response: `You can reach Mohd Kaif directly at **hello@kaifcoder.in**. He typically responds within 12 to 24 hours.
 
-[action: Send Email](mailto:kaif.webwork@gmail.com)
+[action: Send Email](mailto:hello@kaifcoder.in)
 [action: Get in Touch](/contact)
 [action: Connect on LinkedIn](https://www.linkedin.com/in/mohd-kaif-6a453741a)`,
   },
@@ -270,7 +270,7 @@ const KNOWLEDGE_BASE: KnowledgeModule[] = [
     weight: 12,
     response: `Mohd Kaif is available for full-time engineering roles, high-impact freelance contracts, and remote collaborations worldwide.
 
-[action: Send Email](mailto:kaif.webwork@gmail.com)
+[action: Send Email](mailto:hello@kaifcoder.in)
 [action: Get in Touch](/contact)
 [action: Connect on LinkedIn](https://www.linkedin.com/in/mohd-kaif-6a453741a)`,
   },
@@ -286,7 +286,7 @@ const KNOWLEDGE_BASE: KnowledgeModule[] = [
     response: `Mohd Kaif is based in **Delhi, India (IST, UTC+5:30)** and collaborates smoothly with worldwide teams across all timezones.
 
 [action: Get in Touch](/contact)
-[action: Send Email](mailto:kaif.webwork@gmail.com)
+[action: Send Email](mailto:hello@kaifcoder.in)
 [action: Explore All Projects](/projects)`,
   },
 
@@ -301,7 +301,7 @@ const KNOWLEDGE_BASE: KnowledgeModule[] = [
     response: `You can view Mohd Kaif's resume online or request the latest verified PDF directly by email.
 
 [action: View Resume](/resume)
-[action: Request PDF Resume](mailto:kaif.webwork@gmail.com)
+[action: Request PDF Resume](mailto:hello@kaifcoder.in)
 [action: View Certificates](/certificates)`,
   },
 

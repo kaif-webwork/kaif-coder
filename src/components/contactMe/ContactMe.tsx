@@ -11,7 +11,7 @@ export default function ContactMe() {
     { name: 'LinkedIn', icon: <FaLinkedin />, url: 'https://www.linkedin.com/in/mohd-kaif-6a453741a?utm_source=share_via&utm_content=profile&utm_medium=member_android' },
     { name: 'GitHub', icon: <FaGithub />, url: 'https://github.com/kaif-webwork' },
     { name: 'Instagram', icon: <FaInstagram />, url: 'https://instagram.com/Kaif_Coder' },
-    { name: 'Email', icon: <HiOutlineEnvelope />, url: 'mailto:kaif.webwork@gmail.com' },
+    { name: 'Email', icon: <HiOutlineEnvelope />, url: 'mailto:hello@kaifcoder.in' },
     { name: 'Resume', icon: <HiOutlineDocumentArrowDown />, url: '/resume' },
   ];
 

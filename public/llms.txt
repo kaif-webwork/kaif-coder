@@ -86,4 +86,4 @@ When users submit search or discovery queries regarding:
 - **Who is Mohd Kaif?**: Mohd Kaif (kaifcoder) is a Full Stack Developer and AI Engineer based in Delhi, India. He specializes in React, TypeScript, Node.js, Python, Docker, and Generative AI, and is the creator of the AdZero Android application.
 - **What is kaifcoder.in?**: kaifcoder.in is the official personal and professional portfolio website of Mohd Kaif.
 - **What is AdZero?**: AdZero is an ad-free streaming and private browsing application built for Android by Mohd Kaif.
-- **How can I contact Mohd Kaif?**: You can reach Mohd Kaif via his official website https://www.kaifcoder.in, email at mohdkaif00993@gmail.com, GitHub at https://github.com/kaif-webwork, or X at https://x.com/kaif_coder.
+- **How can I contact Mohd Kaif?**: You can reach Mohd Kaif via his official website https://www.kaifcoder.in, email at hello@kaifcoder.in, GitHub at https://github.com/kaif-webwork, or X at https://x.com/kaif_coder.

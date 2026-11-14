@@ -103,7 +103,7 @@ Key destinations:
   [action: View Developer Setup](/uses)
 - For contact / hiring:
   [action: Get in Touch](/contact)
-  [action: Send Email](mailto:kaif.webwork@gmail.com)
+  [action: Send Email](mailto:hello@kaifcoder.in)
 - For social / code:
   [action: Visit GitHub](https://github.com/kaif-webwork)
   [action: Connect on LinkedIn](https://www.linkedin.com/in/mohd-kaif-6a453741a)
@@ -117,7 +117,7 @@ CRITICAL RULES (STRICT):
 - Name: Mohd Kaif (kaifcoder)
 - Role: Full Stack Developer & AI Engineer based in Delhi, India
 - Availability: Open for Full-Time software engineering roles, high-impact freelance contracts, and remote collaborations worldwide
-- Email: kaif.webwork@gmail.com
+- Email: hello@kaifcoder.in
 - Tech Stack: React 19, Next.js, TypeScript, Node.js, Express, Upstash Redis (0ms edge cache), MongoDB, Kotlin (Native Android), LangGraph (Agentic AI), Docker, AWS
 - Flagship App: AdZero (v4.4) — 100% Ad-Free Android media streaming client with native background audio and SponsorBlock integration
 - Certificates:

@@ -65,7 +65,7 @@ export default function ResumeLayout() {
           {/* Direct CTA Buttons */}
           <div className="resume-actions-row">
             <a
-              href="mailto:kaif.webwork@gmail.com"
+              href="mailto:hello@kaifcoder.in"
               className="resume-primary-cta"
               onClick={() => playClickSound()}
             >

@@ -190,7 +190,7 @@ export default function HeroSection() {
       {/* Quick Contact & Icon Row */}
       <div className="hero-quick-row">
         <a
-          href="mailto:kaif.webwork@gmail.com"
+          href="mailto:hello@kaifcoder.in"
           className="hero-email-pill"
           data-tooltip="24x7 available for your emails"
           aria-label="Email Me"
