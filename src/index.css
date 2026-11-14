@@ -8,7 +8,7 @@
 }
 
 html {
-  overflow-x: hidden;
+  overflow-x: clip;
   touch-action: pan-y pinch-zoom;
   -webkit-tap-highlight-color: transparent;
   scroll-behavior: auto;
@@ -52,7 +52,7 @@ body {
   color: #b3b3b3;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  overflow-x: clip;
   width: 100%;
   position: relative;
   zoom: 1.1;

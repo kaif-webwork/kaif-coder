@@ -16,7 +16,7 @@ export default function ContactMe() {
   ];
 
   return (
-    <section className="contact-section">
+    <section id="contact" className="contact-section">
       <div className="contact-connect-box">
         <h2 className="contact-connect-title">Let's Connect</h2>
         <p className="contact-connect-subtitle">

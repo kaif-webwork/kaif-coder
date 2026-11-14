@@ -36,6 +36,7 @@ const CertificatesLayout = safeLazy(() => import('./pages/certificates/Certifica
 const AnalyticsLayout = safeLazy(() => import('./pages/analytics/AnalyticsLayout'));
 const UsesLayout = safeLazy(() => import('./pages/uses/UsesLayout'));
 const SupportLayout = safeLazy(() => import('./pages/support/SupportLayout'));
+const ContactLayout = safeLazy(() => import('./pages/contact/ContactLayout'));
 const AdZeroPreview = safeLazy(() => import('./pages/projects/AdZeroPreview'));
 const PageNotFound = safeLazy(() => import('./pages/notFound/PageNotFound'));
 
@@ -68,6 +69,8 @@ export default function App() {
                 <Route path="/certificates" element={<CertificatesLayout />} />
                 <Route path="/analytics" element={<AnalyticsLayout />} />
                 <Route path="/support" element={<SupportLayout />} />
+                <Route path="/contact" element={<ContactLayout />} />
+                <Route path="/contact-me" element={<Navigate to="/contact" replace />} />
                 <Route path="*" element={<PageNotFound />} />
               </Routes>
             </Suspense>

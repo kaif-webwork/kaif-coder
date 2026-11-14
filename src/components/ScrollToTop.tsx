@@ -3,9 +3,22 @@ import { useLocation } from 'react-router';
 import { getLenis } from '../utils/lenis';
 
 export default function ScrollToTop() {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
 
   useEffect(() => {
+    if (hash) {
+      const el = document.querySelector<HTMLElement>(hash);
+      if (el) {
+        const lenis = getLenis();
+        if (lenis) {
+          lenis.scrollTo(el, { offset: -80 });
+        } else {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+        return;
+      }
+    }
+
     const lenis = getLenis();
     if (lenis) {
       lenis.scrollTo(0, { immediate: true });
@@ -16,7 +29,7 @@ export default function ScrollToTop() {
         behavior: 'instant',
       });
     }
-  }, [pathname]);
+  }, [pathname, hash]);
 
   return null;
 }

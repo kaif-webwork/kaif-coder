@@ -80,8 +80,7 @@ function isOriginAllowed(origin: string | null, req: Request): boolean {
   }
 }
 
-// Edge memory store for fast multi-device tracking fallback
-const memoryStore = new Map<string, number>();
+// Edge tracking handler
 
 export default async function handler(req: Request) {
   const origin = req.headers.get('origin');
